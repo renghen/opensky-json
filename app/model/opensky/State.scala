@@ -1,6 +1,20 @@
 package model.opensky
 
 import spray.json._
+import enumeratum.values._
+
+sealed abstract class PositionSource(val value: Int) extends IntEnumEntry
+
+object PositionSource extends IntEnum[PositionSource] {
+
+  val values = findValues
+
+  case object ADS_B extends PositionSource(value = 0)
+  case object ASTERIX extends PositionSource(value = 1)
+  case object MLAT extends PositionSource(value = 2)
+  case object FLARM extends PositionSource(value = 3)
+
+}
 
 case class State(
     icao24: String,
@@ -19,12 +33,12 @@ case class State(
     geoAltitude: Option[Double],
     squawk: Option[String],
     spi: Boolean,
-    positionSource: Int
+    positionSource: PositionSource
 )
 
 object StateJsonProtocol extends DefaultJsonProtocol {
 
-  //given more time will use magnet pattern
+  // given more time will use magnet pattern
   def optionalString(field: Option[String]) = field match {
     case None        => JsNull
     case Some(value) => JsString(value)
@@ -64,7 +78,7 @@ object StateJsonProtocol extends DefaultJsonProtocol {
         optionalNumberfromDouble(state.geoAltitude),
         optionalString(state.squawk),
         JsBoolean(state.spi),
-        JsNumber(state.positionSource)
+        JsNumber(state.positionSource.value)
       )
 
     def optionStringJs(js: JsValue): Option[String] = {
@@ -75,7 +89,7 @@ object StateJsonProtocol extends DefaultJsonProtocol {
       }
     }
 
-    //given more time will use magnet pattern
+    // given more time will use magnet pattern
     def optionDoubleJs(js: JsValue): Option[Double] = {
       js match {
         case JsNull          => None
@@ -126,7 +140,7 @@ object StateJsonProtocol extends DefaultJsonProtocol {
           ) =>
         State(
           icao24,
-          optionStringJs(callsign),
+          optionStringJs(callsign).filter(_.length() == 8),
           originCountry,
           optionLongJs(timePosition),
           lastContact.toLong,
@@ -141,7 +155,7 @@ object StateJsonProtocol extends DefaultJsonProtocol {
           optionDoubleJs(geoAltitude),
           optionStringJs(squawk),
           spi,
-          positionSource.toInt
+          PositionSource.withValue(positionSource.toInt)
         )
 
       case _ => deserializationError("State expected")
