@@ -46,7 +46,7 @@ object StateJsonProtocol extends DefaultJsonProtocol {
   }
 
   implicit object StateJsonFormat extends RootJsonFormat[State] {
-    def write(state: State) =
+    override def write(state: State) =
       JsArray(
         JsString(state.icao24),
         optionalString(state.callsign),
@@ -102,7 +102,7 @@ object StateJsonProtocol extends DefaultJsonProtocol {
       }
     }
 
-    def read(value: JsValue) = value match {
+    override def read(value: JsValue) = value match {
       case JsArray(
             Vector(
               JsString(icao24),
