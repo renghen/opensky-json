@@ -6,7 +6,7 @@ final case class TimeAndStates(
     states: List[State]
 )
 
-object TimeAndStateJsonProtocol extends DefaultJsonProtocol {
+object TimeAndStatesJsonProtocol extends DefaultJsonProtocol {
   import StateJsonProtocol._
 
   implicit val timeAndStatesFormat: RootJsonFormat[TimeAndStates] = jsonFormat2(TimeAndStates.apply)
