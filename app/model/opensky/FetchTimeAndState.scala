@@ -40,10 +40,10 @@ class FetchTimeAndStateImpl @Inject() (configuration: Configuration)(implicit ec
   override def getAirPlanes(): Future[TimeAndStates] = {
     val request = Get(url)
     val responseFuture = Http().singleRequest(request)
-    val unmarshalled: Future[Source[TimeAndStates,Any]] = responseFuture.map { response =>
+    val unmarshalled: Future[Source[TimeAndStates, Any]] = responseFuture.map { response =>
       response.entity.dataBytes
         .via(JsonFraming.objectScanner(2_048_000))
-        .mapAsync(1)(bytes => Unmarshal(bytes).to[TimeAndStates])    
+        .mapAsync(1)(bytes => Unmarshal(bytes).to[TimeAndStates])
     }
     val source = Source.futureSource(unmarshalled)
     source.runWith(Sink.head)
