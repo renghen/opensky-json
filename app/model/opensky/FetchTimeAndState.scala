@@ -4,6 +4,8 @@ import play.api.Configuration
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.unmarshalling.Unmarshal
+import akka.http.scaladsl.common.EntityStreamingSupport
+import akka.http.scaladsl.common.JsonEntityStreamingSupport
 // import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.model.HttpResponse
 import akka.http.scaladsl.client.RequestBuilding.Get
@@ -14,28 +16,36 @@ import scala.concurrent.Future
 import scala.concurrent.ExecutionContext
 
 import javax.inject.Inject
+import javax.inject.Singleton
+import akka.stream.scaladsl.Source
+import akka.NotUsed
+import akka.stream.scaladsl.Sink
+import akka.stream.scaladsl.JsonFraming
 
 trait FetchTimeAndState {
-  def getAirPlanes(): Future[String]
+  def getAirPlanes(): Future[TimeAndStates]
 }
 
-object FetchTimeAndState {
+object FetchTimeAndStateImpl {
   final val url = "https://opensky-network.org/api/states/all"
 }
 
 class FetchTimeAndStateImpl @Inject() (configuration: Configuration)(implicit ec: ExecutionContext)
     extends FetchTimeAndState {
-  val url = configuration.getOptional[String]("opensky.url").getOrElse(FetchTimeAndState.url)
-
+  val url = configuration.getOptional[String]("opensky.url").getOrElse(FetchTimeAndStateImpl.url)
   implicit val system: ActorSystem = ActorSystem("SingleRequest")
+  implicit val jsonStreamingSupport: JsonEntityStreamingSupport = EntityStreamingSupport.json()
+  import TimeAndStatesJsonProtocol._
 
-  def getAirPlanes() = {
+  override def getAirPlanes(): Future[TimeAndStates] = {
     val request = Get(url)
-    val responseFuture: Future[HttpResponse] = Http().singleRequest(request)
-    val result = responseFuture.flatMap { response =>
-      val source = Unmarshal(response.entity).to[String]
-      source
+    val responseFuture = Http().singleRequest(request)
+    val unmarshalled: Future[Source[TimeAndStates,Any]] = responseFuture.map { response =>
+      response.entity.dataBytes
+        .via(JsonFraming.objectScanner(2_048_000))
+        .mapAsync(1)(bytes => Unmarshal(bytes).to[TimeAndStates])    
     }
-    result
+    val source = Source.futureSource(unmarshalled)
+    source.runWith(Sink.head)
   }
 }

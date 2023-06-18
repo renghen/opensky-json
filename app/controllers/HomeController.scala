@@ -3,15 +3,15 @@ package controllers
 import javax.inject._
 import play.api._
 import play.api.mvc._
-import model.opensky.FetchTimeAndState
 import scala.concurrent.ExecutionContext
+import model.opensky._
 
 /** This controller creates an `Action` to handle HTTP requests to the application's home page.
   */
 @Singleton
 class HomeController @Inject() (
     val controllerComponents: ControllerComponents,
-    val fetchTimeAndState: FetchTimeAndState
+    val fetchTimeAndState: FetchTimeAndStateImpl
 )(implicit ec: ExecutionContext)
     extends BaseController {
 
@@ -26,7 +26,7 @@ class HomeController @Inject() (
 
   def getPlanes() = Action.async { implicit request: Request[AnyContent] =>
     fetchTimeAndState.getAirPlanes().map { result =>
-      Ok(result)
+      Ok(result.states.length.toString())
     }
   }
 

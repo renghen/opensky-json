@@ -4,7 +4,7 @@ import org.scalatestplus.play._
 import org.scalatestplus.play.guice._
 import play.api.test._
 import play.api.test.Helpers._
-import model.opensky.FetchTimeAndState
+import model.opensky._
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 
@@ -15,7 +15,7 @@ import scala.concurrent.Future
 class HomeControllerSpec extends PlaySpec with GuiceOneAppPerTest with Injecting {
 
   val stubFetchTimeAndState = new FetchTimeAndState {
-    def getAirPlanes(): Future[String] = Future { "got airplanes" }
+    def getAirPlanes(): Future[Seq[TimeAndStates]] = Future { Seq.empty[TimeAndStates] }
   }
 
   implicit val ec: scala.concurrent.ExecutionContext = scala.concurrent.ExecutionContext.global
