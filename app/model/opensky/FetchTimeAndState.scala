@@ -15,11 +15,19 @@ import scala.concurrent.ExecutionContext
 
 import javax.inject.Inject
 
-class FetchTimeAndState @Inject() (configuration: Configuration)(implicit ec: ExecutionContext) {
-  final val url = "https://opensky-network.org/api/states/all"
+trait FetchTimeAndState {
+  def getAirPlanes(): Future[String]
+}
 
-  implicit val system: ActorSystem =
-    ActorSystem("SingleRequest")
+object FetchTimeAndState {
+  final val url = "https://opensky-network.org/api/states/all"
+}
+
+class FetchTimeAndStateImpl @Inject() (configuration: Configuration)(implicit ec: ExecutionContext)
+    extends FetchTimeAndState {
+  val url = configuration.getOptional[String]("opensky.url").getOrElse(FetchTimeAndState.url)
+
+  implicit val system: ActorSystem = ActorSystem("SingleRequest")
 
   def getAirPlanes() = {
     val request = Get(url)

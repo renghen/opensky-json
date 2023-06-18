@@ -4,6 +4,9 @@ import org.scalatestplus.play._
 import org.scalatestplus.play.guice._
 import play.api.test._
 import play.api.test.Helpers._
+import model.opensky.FetchTimeAndState
+import scala.concurrent.ExecutionContext
+import scala.concurrent.Future
 
 /** Add your spec here. You can mock out a whole application including requests, plugins etc.
   *
@@ -11,10 +14,16 @@ import play.api.test.Helpers._
   */
 class HomeControllerSpec extends PlaySpec with GuiceOneAppPerTest with Injecting {
 
+  val stubFetchTimeAndState = new FetchTimeAndState {
+    def getAirPlanes(): Future[String] = Future { "got airplanes" }
+  }
+
+  implicit val ec: scala.concurrent.ExecutionContext = scala.concurrent.ExecutionContext.global
+
   "HomeController GET" should {
 
     "render the index page from a new instance of controller" in {
-      val controller = new HomeController(stubControllerComponents())
+      val controller = new HomeController(stubControllerComponents(), stubFetchTimeAndState)
       val home = controller.index().apply(FakeRequest(GET, "/"))
 
       status(home) mustBe OK
