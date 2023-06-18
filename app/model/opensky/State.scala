@@ -36,7 +36,7 @@ case class State(
     positionSource: PositionSource
 )
 
-object StateJsonProtocol extends DefaultJsonProtocol {
+object StateJsonProtocol extends akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport with DefaultJsonProtocol {
 
   // given more time will use magnet pattern
   def optionalString(field: Option[String]) = field match {

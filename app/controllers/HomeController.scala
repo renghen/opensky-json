@@ -26,7 +26,7 @@ class HomeController @Inject() (
 
   def getPlanes() = Action.async { implicit request: Request[AnyContent] =>
     fetchTimeAndState.getAirPlanes().map { result =>
-      Ok(result.states.length.toString())
+      Ok(result.length.toString())
     }
   }
 

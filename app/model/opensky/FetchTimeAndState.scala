@@ -21,9 +21,11 @@ import akka.stream.scaladsl.Source
 import akka.NotUsed
 import akka.stream.scaladsl.Sink
 import akka.stream.scaladsl.JsonFraming
+import akka.util.ByteString
+import akka.stream.scaladsl.Flow
 
 trait FetchTimeAndState {
-  def getAirPlanes(): Future[TimeAndStates]
+  def getAirPlanes(): Future[Seq[State]]
 }
 
 object FetchTimeAndStateImpl {
@@ -32,20 +34,25 @@ object FetchTimeAndStateImpl {
 
 class FetchTimeAndStateImpl @Inject() (configuration: Configuration)(implicit ec: ExecutionContext)
     extends FetchTimeAndState {
+
+  // import TimeAndStatesJsonProtocol._
+  import StateJsonProtocol._
+
   val url = configuration.getOptional[String]("opensky.url").getOrElse(FetchTimeAndStateImpl.url)
   implicit val system: ActorSystem = ActorSystem("SingleRequest")
   implicit val jsonStreamingSupport: JsonEntityStreamingSupport = EntityStreamingSupport.json()
-  import TimeAndStatesJsonProtocol._
 
-  override def getAirPlanes(): Future[TimeAndStates] = {
+  override def getAirPlanes(): Future[Seq[State]] = {
+    import akka.stream.alpakka.json.scaladsl.JsonReader
+
     val request = Get(url)
     val responseFuture = Http().singleRequest(request)
-    val unmarshalled: Future[Source[TimeAndStates, Any]] = responseFuture.map { response =>
+    val unmarshalled = responseFuture.map { response =>
       response.entity.dataBytes
-        .via(JsonFraming.objectScanner(2_048_000))
-        .mapAsync(1)(bytes => Unmarshal(bytes).to[TimeAndStates])
+        .via(JsonReader.select("$.states"))
+        .mapAsync(1)(bytes => Unmarshal(bytes).to[Seq[State]])
     }
-    val source = Source.futureSource(unmarshalled)
+    val source: Source[Seq[State], Future[Any]] = Source.futureSource(unmarshalled)
     source.runWith(Sink.head)
   }
 }
