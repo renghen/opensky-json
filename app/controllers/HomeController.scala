@@ -11,7 +11,7 @@ import model.opensky._
 @Singleton
 class HomeController @Inject() (
     val controllerComponents: ControllerComponents,
-    val fetchTimeAndState: FetchTimeAndStateImpl
+    val fetchTimeAndState: FetchTimeAndState
 )(implicit ec: ExecutionContext)
     extends BaseController {
 

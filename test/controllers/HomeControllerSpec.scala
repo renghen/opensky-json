@@ -15,7 +15,7 @@ import scala.concurrent.Future
 class HomeControllerSpec extends PlaySpec with GuiceOneAppPerTest with Injecting {
 
   val stubFetchTimeAndState = new FetchTimeAndState {
-    def getAirPlanes(): Future[Seq[TimeAndStates]] = Future { Seq.empty[TimeAndStates] }
+    def getAirPlanes(): Future[Seq[State]] = Future { Seq.empty[State] }
   }
 
   implicit val ec: scala.concurrent.ExecutionContext = scala.concurrent.ExecutionContext.global
