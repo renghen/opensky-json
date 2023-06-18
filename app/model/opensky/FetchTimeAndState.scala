@@ -4,25 +4,20 @@ import play.api.Configuration
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.unmarshalling.Unmarshal
-import akka.http.scaladsl.common.EntityStreamingSupport
-import akka.http.scaladsl.common.JsonEntityStreamingSupport
-// import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
+import akka.http.scaladsl.common.{EntityStreamingSupport, JsonEntityStreamingSupport}
 import akka.http.scaladsl.model.HttpResponse
 import akka.http.scaladsl.client.RequestBuilding.Get
 import akka.http.scaladsl.Http
 import spray.json._
 
-import scala.concurrent.Future
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
+import scala.collection.immutable.HashMap
 
-import javax.inject.Inject
-import javax.inject.Singleton
-import akka.stream.scaladsl.Source
-import akka.NotUsed
-import akka.stream.scaladsl.Sink
-import akka.stream.scaladsl.JsonFraming
-import akka.util.ByteString
+import javax.inject.{Inject, Singleton}
+import akka.stream.scaladsl.{Sink, Source}
+
 import akka.stream.scaladsl.Flow
+import akka.stream.scaladsl.RunnableGraph
 
 trait FetchTimeAndState {
   def getAirPlanes(): Future[Seq[State]]
@@ -34,8 +29,6 @@ object FetchTimeAndStateImpl {
 
 class FetchTimeAndStateImpl @Inject() (configuration: Configuration)(implicit ec: ExecutionContext)
     extends FetchTimeAndState {
-
-  // import TimeAndStatesJsonProtocol._
   import StateJsonProtocol._
 
   val url = configuration.getOptional[String]("opensky.url").getOrElse(FetchTimeAndStateImpl.url)
@@ -51,8 +44,21 @@ class FetchTimeAndStateImpl @Inject() (configuration: Configuration)(implicit ec
       response.entity.dataBytes
         .via(JsonReader.select("$.states"))
         .mapAsync(1)(bytes => Unmarshal(bytes).to[Seq[State]])
+    // .mapConcat(identity)
     }
     val source: Source[Seq[State], Future[Any]] = Source.futureSource(unmarshalled)
+    val countries = Flow[Seq[State]].map(lst => toCountries(lst))
+
     source.runWith(Sink.head)
   }
+
+  def toCountries(lst: Seq[State]) = lst.groupBy(identity).view.mapValues(_.size).toMap
+
+  def isAboveNetherlands(lst: Seq[State]) = lst.filter { state =>
+    (state.longitude, state.latitude) match {
+      case (Some(long), Some(lat)) => Bounds_WGS84.isAboveNetherlands(long, lat)
+      case (_, _)                  => false
+    }
+  }
+
 }
