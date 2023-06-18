@@ -81,14 +81,14 @@ class StateSpec extends PlaySpec {
 
     "simple and normal" in {
       val resultStr =
-        """["AAAAAA","12345678","SomeCountry",1000000000,1000000000,10.0,10.0,10000.0,false,200.0,200.0,0.0,null,10000.0,"2000",false,0]"""      
+        """["AAAAAA","12345678","SomeCountry",1000000000,1000000000,10.0,10.0,10000.0,false,200.0,200.0,0.0,null,10000.0,"2000",false,0]"""
       assert(state.toJson.toString() == resultStr)
     }
 
     "sensors is a vector of long" in {
-      val newState = state.copy(sensors = Some(List(1,2, 3, 4)))
+      val newState = state.copy(sensors = Some(List(1, 2, 3, 4)))
       val resultStr =
-        """["AAAAAA","12345678","SomeCountry",1000000000,1000000000,10.0,10.0,10000.0,false,200.0,200.0,0.0,[1,2,3,4],10000.0,"2000",false,0]"""      
+        """["AAAAAA","12345678","SomeCountry",1000000000,1000000000,10.0,10.0,10000.0,false,200.0,200.0,0.0,[1,2,3,4],10000.0,"2000",false,0]"""
       assert(newState.toJson.toString() == resultStr)
     }
 

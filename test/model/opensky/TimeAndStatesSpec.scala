@@ -7,7 +7,6 @@ import play.api.test.Helpers._
 
 import spray.json._
 
-import collection.mutable.Stack
 import org.scalatest._
 import matchers._
 
@@ -28,15 +27,16 @@ class TimeAndStatesSpec extends PlaySpec {
   """
 
   "Time and States parsing" must {
-    "simple and normal" in {      
+    "simple and normal" in {
       val jsonAst = timeAndStatestr.parseJson
       val result = jsonAst.convertTo[TimeAndStates]
       assert(result.time == 1686914920)
       assert(result.states.length == 5)
       assert(result.states.count(st => st.positionSource == PositionSource.ADS_B) == 5)
+      assert(result.states.count(st => st.positionSource == PositionSource.ASTERIX) == 0)
       assert(result.states.count(st => st.originCountry == "Switzerland") == 3)
       assert(result.states.count(st => st.originCountry == "Estonia") == 1)
       assert(result.states.count(st => st.originCountry == "United States") == 1)
-    }    
+    }
   }
 }
