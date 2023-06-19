@@ -2,24 +2,22 @@ package model.opensky
 
 import play.api.Configuration
 
+import akka.Done
 import akka.actor.ActorSystem
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.http.scaladsl.common.{EntityStreamingSupport, JsonEntityStreamingSupport}
 import akka.http.scaladsl.model.HttpResponse
 import akka.http.scaladsl.client.RequestBuilding.Get
 import akka.http.scaladsl.Http
+import akka.stream.scaladsl.{Sink, Source}
 import spray.json._
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.collection.immutable.HashMap
 
 import javax.inject.{Inject, Singleton}
-import akka.stream.scaladsl.{Sink, Source}
+import com.google.inject.ImplementedBy
 
-import akka.stream.scaladsl.Flow
-import akka.stream.scaladsl.RunnableGraph
-import akka.Done
-
+@ImplementedBy(classOf[FetchTimeAndStateImpl])
 trait FetchTimeAndState {
   def getAirPlanes(): Future[Seq[State]]
 }
@@ -28,6 +26,7 @@ object FetchTimeAndStateImpl {
   final val url = "https://opensky-network.org/api/states/all"
 }
 
+@Singleton
 class FetchTimeAndStateImpl @Inject() (configuration: Configuration, stateProcessing: StateProcessing)(implicit
     ec: ExecutionContext
 ) extends FetchTimeAndState {
