@@ -5,13 +5,17 @@ import play.api._
 import play.api.mvc._
 import scala.concurrent.ExecutionContext
 import model.opensky._
+import scala.util.Success
+import scala.concurrent.Future
+import scala.util.Failure
 
 /** This controller creates an `Action` to handle HTTP requests to the application's home page.
   */
 @Singleton
 class HomeController @Inject() (
     val controllerComponents: ControllerComponents,
-    val fetchTimeAndState: FetchTimeAndState
+    val fetchTimeAndState: FetchTimeAndState,
+    val stateProcessing: StateProcessing
 )(implicit ec: ExecutionContext)
     extends BaseController {
 
@@ -25,9 +29,11 @@ class HomeController @Inject() (
   }
 
   def getPlanes() = Action.async { implicit request: Request[AnyContent] =>
-    fetchTimeAndState.getAirPlanes().map { result =>
-      Ok(result.toString())
-    }
+    fetchTimeAndState
+      .getAirPlanes()
+      .map { states =>
+        Ok(states.map(_.icao24).length.toString())
+      }
   }
 
 }

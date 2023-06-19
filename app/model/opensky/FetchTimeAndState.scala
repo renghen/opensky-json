@@ -41,6 +41,7 @@ class FetchTimeAndStateImpl @Inject() (configuration: Configuration, stateProces
 
     val request = Get(url)
     val responseFuture = Http().singleRequest(request)
+    stateProcessing.resetStates()
     val unmarshalled = responseFuture.map { response =>
       response.entity.dataBytes
         .via(JsonReader.select("$.states"))
@@ -49,6 +50,6 @@ class FetchTimeAndStateImpl @Inject() (configuration: Configuration, stateProces
     }
     val source: Source[State, Future[Any]] = Source.futureSource(unmarshalled)
     val result = source.runWith(Sink.foreach { state => stateProcessing.processState(state) })
-    Future[Seq[State]] { Seq.empty }
+    result.flatMap(_ => Future[Seq[State]] { stateProcessing.getLoadedStates() })
   }
 }

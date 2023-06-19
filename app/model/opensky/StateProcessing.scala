@@ -6,17 +6,20 @@ import scala.collection.mutable
 
 import javax.inject.{Inject, Singleton}
 import java.time.Instant
+import com.google.inject.ImplementedBy
 
-object StateProcessing {
+import play.api.Logger
+
+@ImplementedBy(classOf[StateProcessingImpl])
+abstract class StateProcessing {
+  val delay: Int
   type Icao24 = String
   type Country = String
-}
 
-@Singleton
-class StateProcessing @Inject() (implicit ec: ExecutionContext) {
-  import StateProcessing._
-  final val delay: Int = 3600
+  val logger: Logger = Logger(this.getClass())
+
   private val listOfIcao24 = mutable.ArrayBuffer.empty[Icao24]
+  private val listOfStates = mutable.ArrayBuffer.empty[State] // debug purposes only, to be removed later
   private val countryOrigin: mutable.HashMap[String, Int] = mutable.HashMap.empty[Country, Int]
   private val planeAboveNetherlands: mutable.HashMap[String, Long] = mutable.HashMap.empty[Icao24, Long]
 
@@ -66,8 +69,27 @@ class StateProcessing @Inject() (implicit ec: ExecutionContext) {
     planeAboveNetherlands.toMap
   }
 
+  def addToState(state: State) = {
+    listOfStates += state
+  }
+
+  def resetStates() = listOfStates.clear()
+
+  def getLoadedStates() = {
+    logger.info(s"length of state: ${listOfStates.length}")
+    listOfStates.toList
+  }
+
   def processState(state: State) = {
+    // logger.info(s"state: ${state.icao24}")
+    addToState(state)
     toCountries(state)
     isAboveNetherlandsFor1Hour(state)
   }
+}
+
+@Singleton
+class StateProcessingImpl @Inject() (implicit ec: ExecutionContext) extends StateProcessing {
+  final val delay: Int = 3600
+  override val logger: Logger = Logger(this.getClass())
 }
