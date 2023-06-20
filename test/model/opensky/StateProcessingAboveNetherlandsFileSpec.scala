@@ -13,19 +13,19 @@ import scala.util.Random
 import model.opensky.StateProcessingTest
 
 class StateProcessingAboveNetherlandsFileSpec extends PlaySpec {
+  import StateJsonProtocol._
 
   val stateProcessing = new StateProcessingTest()
   val netherlandsCall = "https://opensky-network.org/api/states/all?lamin=50.75&lomin=3.2&lamax=53.7&lomax=7.22"
   val source = Source.fromResource("netherlands.json")
   val str = source.getLines().toList.mkString("\n")
-  import StateJsonProtocol._
   val jsonAst = str.parseJson
   val statesInNetherlands = jsonAst.convertTo[Vector[State]]
   val rand = new Random
 
   def insertAfter1Second() = {
     val now = Instant.now.getEpochSecond()
-    val stateInNetherlandsNow = statesInNetherlands.foreach { state =>
+    statesInNetherlands.foreach { state =>
       val stateNow = if (rand.nextBoolean()) {
         state.copy(timePosition = Some(now), lastContact = now)
       } else {
@@ -92,7 +92,7 @@ class StateProcessingAboveNetherlandsFileSpec extends PlaySpec {
     "states with country origin(United States, United Kingdom) in file after 1 sec NOT Updated" in {
       Thread.sleep(1000)
       val now = Instant.now.getEpochSecond()
-      val stateInNetherlandsNow = notUnited.foreach { state =>
+      notUnited.foreach { state =>
         val stateNow = if (rand.nextBoolean()) {
           state.copy(timePosition = Some(now), lastContact = now)
         } else {
@@ -117,7 +117,7 @@ class StateProcessingAboveNetherlandsFileSpec extends PlaySpec {
     "states with country origin(United States, United Kingdom) in file after 2 sec NOT Updated" in {
       Thread.sleep(1000)
       val now = Instant.now.getEpochSecond()
-      val stateInNetherlandsNow = notUnited.foreach { state =>
+      notUnited.foreach { state =>
         val stateNow = if (rand.nextBoolean()) {
           state.copy(timePosition = Some(now), lastContact = now)
         } else {
@@ -142,7 +142,7 @@ class StateProcessingAboveNetherlandsFileSpec extends PlaySpec {
     "states with country origin(United States, United Kingdom) in file after 3 sec NOT Updated" in {
       Thread.sleep(1000)
       val now = Instant.now.getEpochSecond()
-      val stateInNetherlandsNow = notUnited.foreach { state =>
+      notUnited.foreach { state =>
         val stateNow = if (rand.nextBoolean()) {
           state.copy(timePosition = Some(now), lastContact = now)
         } else {

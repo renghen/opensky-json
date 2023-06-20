@@ -8,16 +8,13 @@ import play.api.test.Helpers._
 import spray.json._
 import scala.io.Source
 import java.time.Instant
-import org.checkerframework.checker.units.qual.s
 
 class StateProcessingTest extends StateProcessing {
   final val delay: Int = 2
 }
 
 class StateProcessingAboveNetherlandsSpec extends PlaySpec {
-
   val stateProcessing = new StateProcessingTest()
-
   val stateInNetherlands = State(
     "aa441c",
     Some("UAL20   "),
@@ -52,11 +49,13 @@ class StateProcessingAboveNetherlandsSpec extends PlaySpec {
 
     val netherlandsCall = "https://opensky-network.org/api/states/all?lamin=50.75&lomin=3.2&lamax=53.7&lomax=7.22"
     s"states from url $netherlandsCall in file" in {
+      import StateJsonProtocol._
+
       val source = Source.fromResource("netherlands.json")
       val str = source.getLines().toList.mkString("\n")
-      import StateJsonProtocol._
       val jsonAst = str.parseJson
       val states = jsonAst.convertTo[Vector[State]]
+
       assert(states.length == 123)
       assert(states.filter(stateProcessing.isAboveNetherlands).length == 123)
     }
