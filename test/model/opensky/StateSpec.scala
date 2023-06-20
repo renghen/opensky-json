@@ -52,6 +52,12 @@ class StateSpec extends PlaySpec {
       val state = jsonAst.convertTo[State]
       assert(state.sensors == Some(List(1, 2, 3, 4)))
     }
+
+    "list of states" in {
+      val jsonAst = str.parseJson
+      val states = jsonAst.convertTo[Vector[State]]
+      assert(states.length == 3)
+    }
   }
 
   "State writing" must {

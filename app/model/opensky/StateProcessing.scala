@@ -1,6 +1,5 @@
 package model.opensky
 
-import scala.concurrent.{ExecutionContext, Future}
 import scala.collection.immutable.HashMap
 import scala.collection.mutable
 
@@ -89,8 +88,7 @@ abstract class StateProcessing {
 }
 
 @Singleton
-class StateProcessingImpl @Inject() (configuration: Configuration)(implicit ec: ExecutionContext)
-    extends StateProcessing {
+class StateProcessingImpl @Inject() (configuration: Configuration) extends StateProcessing {
   final val delay: Int = configuration.getOptional[Int]("opensky.top.time").getOrElse(3600)
 
   override val logger: Logger = Logger(this.getClass())
