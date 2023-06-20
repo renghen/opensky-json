@@ -1,5 +1,6 @@
 name := """opensky-json"""
 organization := "com.renghen"
+maintainer := "renghen@gmail.com"
 
 version := "1.0"
 
