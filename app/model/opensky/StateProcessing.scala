@@ -8,8 +8,7 @@ import javax.inject.{Inject, Singleton}
 import java.time.Instant
 import com.google.inject.ImplementedBy
 
-import play.api.Logger
-import play.api.Configuration
+import play.api.{Configuration, Logger}
 
 @ImplementedBy(classOf[StateProcessingImpl])
 abstract class StateProcessing {
@@ -90,7 +89,8 @@ abstract class StateProcessing {
 }
 
 @Singleton
-class StateProcessingImpl @Inject()(configuration: Configuration) (implicit ec: ExecutionContext) extends StateProcessing {
+class StateProcessingImpl @Inject() (configuration: Configuration)(implicit ec: ExecutionContext)
+    extends StateProcessing {
   final val delay: Int = configuration.getOptional[Int]("opensky.top.time").getOrElse(3600)
 
   override val logger: Logger = Logger(this.getClass())
