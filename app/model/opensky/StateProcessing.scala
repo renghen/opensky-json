@@ -87,14 +87,15 @@ abstract class StateProcessing {
 
   def statesLoaded(): Unit = {
     val stateflyList = listOfStates.map { state =>
-      val baroSlice = state.baroAltitude.getOrElse(0.0) / 1000
+      val baroAltitude = state.baroAltitude.getOrElse(0.0)
+      val time = state.timePosition.getOrElse(state.lastContact)
       StateOfFly(
         state.icao24,
         state.callsign,
-        state.timePosition,
-        state.lastContact,
+        time,
         state.latitude.getOrElse(0),
-        baroSlice.toLong,
+        (baroAltitude / 1000).toLong,
+        baroAltitude,
         state.verticalRate.getOrElse(0)
       )
     }.toList
