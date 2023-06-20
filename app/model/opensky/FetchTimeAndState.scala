@@ -50,6 +50,12 @@ class FetchTimeAndStateImpl @Inject() (configuration: Configuration, stateProces
     }
     val source: Source[State, Future[Any]] = Source.futureSource(unmarshalled)
     val result = source.runWith(Sink.foreach { state => stateProcessing.processState(state) })
-    result.flatMap(_ => Future[Seq[State]] { stateProcessing.getLoadedStates() })
+    result.map(_ => { Seq.empty[State] })
+    result.flatMap(_ =>
+      Future[Seq[State]] {
+        stateProcessing.statesLoaded()
+        stateProcessing.getLoadedStates()
+      }
+    )
   }
 }

@@ -18,7 +18,8 @@ abstract class StateProcessing {
   val logger: Logger = Logger(this.getClass())
 
   private val listOfIcao24: mutable.ArrayBuffer[Icao24] = mutable.ArrayBuffer.empty[Icao24]
-  private val listOfStates = mutable.ArrayBuffer.empty[State] // debug purposes only, to be removed later
+  private val listOfStates = mutable.ArrayBuffer.empty[State]
+  private var flyAltitude = mutable.HashMap.empty[Long, List[StateOfFly]]
   private val countryOrigin: mutable.HashMap[Country, Int] = mutable.HashMap.empty[Country, Int]
   private val planeAboveNetherlands: mutable.HashMap[Icao24, Long] = mutable.HashMap.empty[Icao24, Long]
 
@@ -75,15 +76,37 @@ abstract class StateProcessing {
     listOfStates += state
   }
 
-  def resetStates() = listOfStates.clear()
+  def resetStates() = {
+    listOfStates.clear()
+  }
 
   def getLoadedStates() = {
     logger.info(s"length of state: ${listOfStates.length}")
     listOfStates.toList
   }
 
+  def statesLoaded(): Unit = {
+    val stateflyList = listOfStates.map { state =>
+      val baroSlice = state.baroAltitude.getOrElse(0.0) / 1000
+      StateOfFly(
+        state.icao24,
+        state.callsign,
+        state.timePosition,
+        state.lastContact,
+        state.latitude.getOrElse(0),
+        baroSlice.toLong,
+        state.verticalRate.getOrElse(0)
+      )
+    }.toList
+
+    flyAltitude.clear()
+    flyAltitude.addAll(stateflyList.groupBy(_.baroAltitudeSlice))
+  }
+
+  def getSlices() = flyAltitude.toMap
+
   def processState(state: State) = {
-    // logger.info(s"state: ${state.icao24}")
+    logger.info(s"state: ${state}")
     addToState(state)
     toCountries(state)
     isAboveNetherlandsFor1Hour(state)
