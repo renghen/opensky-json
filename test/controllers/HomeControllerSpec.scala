@@ -18,12 +18,16 @@ class HomeControllerSpec extends PlaySpec with GuiceOneAppPerTest with Injecting
     def getAirPlanes(): Future[Seq[State]] = Future { Seq.empty[State] }
   }
 
+  val stubStateProcessing = new StateProcessing {
+    val delay: Int = 2
+  }
+
   implicit val ec: scala.concurrent.ExecutionContext = scala.concurrent.ExecutionContext.global
 
   "HomeController GET" should {
 
     "render the index page from a new instance of controller" in {
-      val controller = new HomeController(stubControllerComponents(), stubFetchTimeAndState)
+      val controller = new HomeController(stubControllerComponents(), stubFetchTimeAndState, stubStateProcessing)
       val home = controller.index().apply(FakeRequest(GET, "/"))
 
       status(home) mustBe OK
