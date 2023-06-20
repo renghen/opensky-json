@@ -147,6 +147,13 @@ class StateProcessingSpec extends PlaySpec {
       assert(now == startedTime + 6)
     }
 
+    "state with coordinates: (4.7712, 51.0) comes again" in {
+      val now = Instant.now.getEpochSecond()
+      val stateInNetherlandsNow = stateInNetherlands.copy(timePosition = Some(now))
+      stateProcessing.processState(stateInNetherlandsNow)
+      assert(stateProcessing.aboveNetherlands().view.keys.toArray.length == 1)
+    }
+
 //     val netherlandsCall = "https://opensky-network.org/api/states/all?lamin=50.75&lomin=3.2&lamax=53.7&lomax=7.22"
 //     s"states from url $netherlandsCall in file" in {
 //       val source = Source.fromResource("netherlands.json")
