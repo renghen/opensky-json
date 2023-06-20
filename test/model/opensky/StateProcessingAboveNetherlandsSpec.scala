@@ -14,7 +14,7 @@ class StateProcessingTest extends StateProcessing {
   final val delay: Int = 2
 }
 
-class StateProcessingSpec extends PlaySpec {
+class StateProcessingAboveNetherlandsSpec extends PlaySpec {
 
   val stateProcessing = new StateProcessingTest()
 
@@ -74,6 +74,7 @@ class StateProcessingSpec extends PlaySpec {
 
   "Test for netherlands in last 2 seconds" must {
     val startedTime = Instant.now.getEpochSecond()
+
     "state with coordinates: (4.7712, 51.0) now" in {
       val now = startedTime
       val stateInNetherlandsNow = stateInNetherlands.copy(timePosition = Some(now))
@@ -153,18 +154,5 @@ class StateProcessingSpec extends PlaySpec {
       stateProcessing.processState(stateInNetherlandsNow)
       assert(stateProcessing.aboveNetherlands().view.keys.toArray.length == 1)
     }
-
-//     val netherlandsCall = "https://opensky-network.org/api/states/all?lamin=50.75&lomin=3.2&lamax=53.7&lomax=7.22"
-//     s"states from url $netherlandsCall in file" in {
-//       val source = Source.fromResource("netherlands.json")
-//       val str = source.getLines().toList.mkString("\n")
-//       import StateJsonProtocol._
-//       val jsonAst = str.parseJson
-//       val states = jsonAst.convertTo[Vector[State]]
-//       assert(states.length == 123)
-//       assert(states.filter(stateProcessing.isAboveNetherlands).length == 123)
-//     }
-//   }
-
   }
 }
