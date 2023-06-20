@@ -7,10 +7,6 @@ import play.api.test.Helpers._
 
 import spray.json._
 
-import collection.mutable.Stack
-import org.scalatest._
-import matchers._
-
 class StateSpec extends PlaySpec {
   import StateJsonProtocol._
 
