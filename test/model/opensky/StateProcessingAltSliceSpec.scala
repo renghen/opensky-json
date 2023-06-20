@@ -17,13 +17,13 @@ class StateProcessingAltSliceSpec extends PlaySpec {
   val rand = new Random
   import StateJsonProtocol._
 
-  def resetAndLoad(str: String) = {
+  def resetAndLoad(str: String)(transform: State => State) = {
     val jsonAst = str.parseJson
     val states = jsonAst.convertTo[Vector[State]]
 
     stateProcessing.resetStates()
     states.foreach { state =>
-      stateProcessing.processState(state)
+      stateProcessing.processState(transform(state))
     }
     stateProcessing.statesLoaded()
   }
@@ -37,7 +37,7 @@ class StateProcessingAltSliceSpec extends PlaySpec {
           ["4b1817","EDW215P ","Switzerland",1686852669,1686852669,-14.5886,32.1815,10965.18,false,251.4,33.82,0.33,null,11635.74,null,false,0]
         ]
       """
-      resetAndLoad(str)
+      resetAndLoad(str)(identity)
       val slices = stateProcessing.getSlices()
       assert(slices.size == 3)
       val sortedList = slices.keys.toList.sorted
@@ -52,18 +52,18 @@ class StateProcessingAltSliceSpec extends PlaySpec {
           ["4b1817","EDW215P ","Switzerland",1686852669,1686852669,-14.5886,32.1815,2965.18,false,251.4,33.82,0.33,null,11635.74,null,false,0]
         ]
       """
-      resetAndLoad(str)
+      resetAndLoad(str)(identity)
       val slices = stateProcessing.getSlices()
       assert(slices.keys.toList.length == 1)
       val sortedList = slices.keys.toList.sorted
       assert(sortedList == List(2))
       assert(slices(2).length == 3)
     }
-
+    val source = Source.fromResource("netherlands.json")
+    val netherlandsStr = source.getLines().toList.mkString("\n")
     "states from file netherlands" in {
-      val source = Source.fromResource("netherlands.json")
-      val str = source.getLines().toList.mkString("\n")
-      resetAndLoad(str)
+
+      resetAndLoad(netherlandsStr)(identity)
 
       val slices = stateProcessing.getSlices()
       assert(slices.keys.toList.length == 11)
@@ -80,7 +80,28 @@ class StateProcessingAltSliceSpec extends PlaySpec {
 
       val listCount = listValues.map(_.length)
       assert(listCount.sum == 123)
+
+      val grpFlyStatus = listValues.flatten.groupBy(_.status)
+      assert(grpFlyStatus(FlyStatus.NORMAL).length == 123)
     }
 
+    "states from file netherlands with US & UK change slice" in {
+      resetAndLoad(netherlandsStr) { state: State =>
+        if (state.originCountry.contains("United")) {
+          state.copy(verticalRate = Some(-1000.0), baroAltitude = state.baroAltitude.map(_ + 1000))
+        } else {
+          state
+        }
+      }
+      val slices = stateProcessing.getSlices()
+      val sortedList = slices.keys.toList.sorted
+      val listValues = sortedList.map(slices)
+      val totalStates = listValues.flatten.length
+      assert(totalStates == 123)
+
+      val grpFlyStatus = listValues.flatten.groupBy(_.status)
+      assert(grpFlyStatus(FlyStatus.WARNING).length == 25)
+      assert(grpFlyStatus(FlyStatus.NORMAL).length == 123 - 25)
+    }
   }
 }

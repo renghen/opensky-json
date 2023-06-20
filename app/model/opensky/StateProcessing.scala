@@ -89,14 +89,28 @@ abstract class StateProcessing {
     val stateflyList = listOfStates.map { state =>
       val baroAltitude = state.baroAltitude.getOrElse(0.0)
       val time = state.timePosition.getOrElse(state.lastContact)
+      val verticalRate = state.verticalRate.getOrElse(0.0)
+      val slicelevel = (baroAltitude / 1000).toLong
+
+      val nextBaroAltitude = baroAltitude + verticalRate
+      val nextSlicelevel = (nextBaroAltitude / 1000).toLong
+
+      val flyStatus = if (slicelevel != nextSlicelevel) {
+        FlyStatus.WARNING
+      } else {
+        FlyStatus.NORMAL
+      }
+
       StateOfFly(
         state.icao24,
         state.callsign,
+        state.originCountry,
         time,
         state.latitude.getOrElse(0),
-        (baroAltitude / 1000).toLong,
+        slicelevel,
         baroAltitude,
-        state.verticalRate.getOrElse(0)
+        verticalRate,
+        flyStatus
       )
     }.toList
 
