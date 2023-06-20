@@ -1,5 +1,8 @@
 package model.opensky
 
+import spray.json._
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
+
 import enumeratum._
 
 sealed trait FlyStatus extends EnumEntry
@@ -22,3 +25,15 @@ final case class StateOfFly(
     verticalRate: Double,
     status: FlyStatus
 )
+
+object StateOfFlyJsonProtocol extends SprayJsonSupport with DefaultJsonProtocol {
+  implicit object FlyStatusFormat extends RootJsonFormat[FlyStatus] {
+    def write(flyStatus: FlyStatus) = JsString(flyStatus.entryName)
+
+    def read(value: JsValue) = value match {
+      case JsString(flyStatus) => FlyStatus.withName(flyStatus)
+      case _                   => deserializationError("Color expected")
+    }
+  }
+  implicit val stateOfFlyFormat: RootJsonFormat[StateOfFly] = jsonFormat9(StateOfFly.apply)
+}
