@@ -17,10 +17,10 @@ abstract class StateProcessing {
 
   val logger: Logger = Logger(this.getClass())
 
-  private val listOfIcao24 = mutable.ArrayBuffer.empty[Icao24]
+  private val listOfIcao24: mutable.ArrayBuffer[Icao24] = mutable.ArrayBuffer.empty[Icao24]
   private val listOfStates = mutable.ArrayBuffer.empty[State] // debug purposes only, to be removed later
-  private val countryOrigin: mutable.HashMap[String, Int] = mutable.HashMap.empty[Country, Int]
-  private val planeAboveNetherlands: mutable.HashMap[String, Long] = mutable.HashMap.empty[Icao24, Long]
+  private val countryOrigin: mutable.HashMap[Country, Int] = mutable.HashMap.empty[Country, Int]
+  private val planeAboveNetherlands: mutable.HashMap[Icao24, Long] = mutable.HashMap.empty[Icao24, Long]
 
   def toCountries(state: State): Unit = {
     val isFound = listOfIcao24.find(code => code == state.icao24) // we check for unique planes
@@ -55,16 +55,19 @@ abstract class StateProcessing {
 
     if (isAboveNetherlands(state)) {
       planeAboveNetherlands.get(state.icao24) match {
-        case None    => planeAboveNetherlands.addOne((state.originCountry, newTime))
-        case Some(_) => planeAboveNetherlands.update(state.originCountry, newTime)
+        case None    => planeAboveNetherlands.addOne((state.icao24, newTime))
+        case Some(_) => planeAboveNetherlands.update(state.icao24, newTime)
       }
-      val oneHourAgo = Instant.now().getEpochSecond - delay
-      val toRemove = planeAboveNetherlands.view.filter(pred => pred._2 > oneHourAgo).keys
+      val since = Instant.now().getEpochSecond - delay
+      val toRemove = planeAboveNetherlands.view.filter(pred => pred._2 < since).keys
       planeAboveNetherlands.subtractAll(toRemove)
     }
   }
 
   def aboveNetherlands() = {
+    val since = Instant.now().getEpochSecond - delay
+    val toRemove = planeAboveNetherlands.view.filter(pred => pred._2 < since).keys
+    planeAboveNetherlands.subtractAll(toRemove)
     planeAboveNetherlands.toMap
   }
 
