@@ -38,9 +38,19 @@ class OpenSkyController @Inject() (
       } else {
         val top3 = ListMap(topCountries.toSeq.sortWith(_._2 > _._2): _*).take(3).toMap
         val top3Json = top3.toJson.toString()
-        logger.info(s"Top 3 countries: top3Json")
+        logger.info(s"Top 3 countries: $top3Json")
         Ok(top3Json)
       }
+    }
+  }
+
+  def overNetherlandsforlastHour() = Action.async { implicit request: Request[AnyContent] =>
+    val overNetherlandsFuture = (fetchTimeAndStateActor ? OverNetherlands).mapTo[Int]
+    overNetherlandsFuture.map { count =>
+      val map = Map(("count" -> count))
+      val countJson = map.toJson.toString()
+      logger.info(s"Planes over Netherlands within lastHour: $count")
+      Ok(countJson)
     }
   }
 }

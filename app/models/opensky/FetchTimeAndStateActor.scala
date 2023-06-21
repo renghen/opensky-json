@@ -45,7 +45,8 @@ class FetchTimeAndStateActor @Inject() (configuration: Configuration)(implicit
   override def receive: Receive = {
     case OverNetherlands => {
       logger.info(s"Over Netherlands for past hour")
-      stateProcessing.aboveNetherlands().size
+      val overNetherlands = stateProcessing.aboveNetherlands()
+      sender() ! overNetherlands.size
     }
 
     case TopCountries => {
