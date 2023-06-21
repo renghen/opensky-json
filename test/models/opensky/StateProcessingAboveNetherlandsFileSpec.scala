@@ -10,12 +10,11 @@ import scala.io.Source
 import java.time.Instant
 import org.checkerframework.checker.units.qual.s
 import scala.util.Random
-import models.opensky.StateProcessingTest
 
 class StateProcessingAboveNetherlandsFileSpec extends PlaySpec {
   import StateJsonProtocol._
 
-  val stateProcessing = new StateProcessingTest()
+  val stateProcessing = new StateProcessing(2)
   val netherlandsCall = "https://opensky-network.org/api/states/all?lamin=50.75&lomin=3.2&lamax=53.7&lomax=7.22"
   val source = Source.fromResource("netherlands.json")
   val str = source.getLines().toList.mkString("\n")

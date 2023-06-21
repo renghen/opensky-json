@@ -1,8 +1,10 @@
 package models.opensky
 
-import play.api.Configuration
+import play.api.{Configuration, Logger}
 
 import akka.Done
+import akka.actor.Actor
+import akka.actor.Props
 import akka.actor.ActorSystem
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.http.scaladsl.common.{EntityStreamingSupport, JsonEntityStreamingSupport}
@@ -17,26 +19,39 @@ import scala.concurrent.{ExecutionContext, Future}
 import javax.inject.{Inject, Singleton}
 import com.google.inject.ImplementedBy
 
-@ImplementedBy(classOf[FetchTimeAndStateImpl])
-trait FetchTimeAndState {
-  def getAirPlanes(): Future[Seq[State]]
-}
-
-object FetchTimeAndStateImpl {
+object FetchTimeAndStateActor {
   final val url = "https://opensky-network.org/api/states/all"
+  def props = Props[FetchTimeAndStateActor]()
+
+  case class SayHello(name: String)
+  case object Fetch
 }
 
-@Singleton
-class FetchTimeAndStateImpl @Inject() (configuration: Configuration, stateProcessing: StateProcessing)(implicit
+class FetchTimeAndStateActor @Inject() (configuration: Configuration)(implicit
     ec: ExecutionContext
-) extends FetchTimeAndState {
+) extends Actor {
   import StateJsonProtocol._
+  import FetchTimeAndStateActor._
 
-  val url = configuration.getOptional[String]("opensky.url").getOrElse(FetchTimeAndStateImpl.url)
+  val url = configuration.getOptional[String]("opensky.url").getOrElse(FetchTimeAndStateActor.url)
+  val delayTime = configuration.getOptional[Int]("opensky.top.time").getOrElse(3600)
+  val stateProcessing: StateProcessing = new StateProcessing(delayTime)
+  val logger: Logger = Logger(this.getClass())
+
   implicit val system: ActorSystem = ActorSystem("SingleRequest")
   implicit val jsonStreamingSupport: JsonEntityStreamingSupport = EntityStreamingSupport.json()
 
-  override def getAirPlanes(): Future[Seq[State]] = {
+  override def receive: Receive = {
+    case SayHello(name: String) => {
+      logger.info(s"hello, $name")
+    }
+
+    case Fetch => {
+      logger.info(s"Fetching...")
+    }
+  }
+
+  def getAirPlanes(): Future[Seq[State]] = {
     import akka.stream.alpakka.json.scaladsl.JsonReader
 
     val request = Get(url)

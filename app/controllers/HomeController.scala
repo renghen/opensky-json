@@ -13,9 +13,7 @@ import scala.util.Failure
   */
 @Singleton
 class HomeController @Inject() (
-    val controllerComponents: ControllerComponents,
-    val fetchTimeAndState: FetchTimeAndState,
-    val stateProcessing: StateProcessing
+    val controllerComponents: ControllerComponents
 )(implicit ec: ExecutionContext)
     extends BaseController {
 
@@ -29,11 +27,12 @@ class HomeController @Inject() (
   }
 
   def getPlanes() = Action.async { implicit request: Request[AnyContent] =>
-    fetchTimeAndState
-      .getAirPlanes()
-      .map { states =>
-        Ok(states.map(_.icao24).length.toString())
-      }
+    // fetchTimeAndState
+    //   .getAirPlanes()
+    //   .map { states =>
+    //     Ok(states.map(_.icao24).length.toString())
+    //   }
+    Future.successful(1).map { result => Ok(result.toString()) }
   }
 
 }

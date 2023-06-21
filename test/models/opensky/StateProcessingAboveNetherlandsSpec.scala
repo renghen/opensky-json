@@ -9,12 +9,8 @@ import spray.json._
 import scala.io.Source
 import java.time.Instant
 
-class StateProcessingTest extends StateProcessing {
-  final val delay: Int = 2
-}
-
 class StateProcessingAboveNetherlandsSpec extends PlaySpec {
-  val stateProcessing = new StateProcessingTest()
+  val stateProcessing = new StateProcessing(2)
   val stateInNetherlands = State(
     "aa441c",
     Some("UAL20   "),

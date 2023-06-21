@@ -3,10 +3,10 @@ package modules.opensky
 import com.google.inject.AbstractModule
 import play.api.libs.concurrent.AkkaGuiceSupport
 
-import models.opensky.HelloActor
+import models.opensky.FetchTimeAndStateActor
 
 class Actors extends AbstractModule with AkkaGuiceSupport {
   override def configure = {
-    bindActor[HelloActor]("hello-actor")
+    bindActor[FetchTimeAndStateActor]("fetchTimeAndState-actor")
   }
 }

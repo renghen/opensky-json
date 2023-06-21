@@ -3,19 +3,16 @@ package models.opensky
 import scala.collection.immutable.HashMap
 import scala.collection.mutable
 
-import javax.inject.{Inject, Singleton}
 import java.time.Instant
-import com.google.inject.ImplementedBy
 
 import play.api.{Configuration, Logger}
 
-@ImplementedBy(classOf[StateProcessingImpl])
-abstract class StateProcessing {
-  val delay: Int
+final class StateProcessing(delayTime: Int) {
   type Icao24 = String
   type Country = String
 
   val logger: Logger = Logger(this.getClass())
+  val delay: Int = delayTime
 
   private val listOfIcao24: mutable.ArrayBuffer[Icao24] = mutable.ArrayBuffer.empty[Icao24]
   private val listOfStates = mutable.ArrayBuffer.empty[State]
@@ -126,11 +123,4 @@ abstract class StateProcessing {
     toCountries(state)
     isAboveNetherlandsFor1Hour(state)
   }
-}
-
-@Singleton
-class StateProcessingImpl @Inject() (configuration: Configuration) extends StateProcessing {
-  final val delay: Int = configuration.getOptional[Int]("opensky.top.time").getOrElse(3600)
-
-  override val logger: Logger = Logger(this.getClass())
 }

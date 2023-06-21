@@ -13,21 +13,12 @@ import scala.concurrent.Future
   * For more information, see https://www.playframework.com/documentation/latest/ScalaTestingWithScalaTest
   */
 class HomeControllerSpec extends PlaySpec with GuiceOneAppPerTest with Injecting {
-
-  val stubFetchTimeAndState = new FetchTimeAndState {
-    def getAirPlanes(): Future[Seq[State]] = Future { Seq.empty[State] }
-  }
-
-  val stubStateProcessing = new StateProcessing {
-    val delay: Int = 2
-  }
-
   implicit val ec: scala.concurrent.ExecutionContext = scala.concurrent.ExecutionContext.global
 
   "HomeController GET" should {
 
     "render the index page from a new instance of controller" in {
-      val controller = new HomeController(stubControllerComponents(), stubFetchTimeAndState, stubStateProcessing)
+      val controller = new HomeController(stubControllerComponents())
       val home = controller.index().apply(FakeRequest(GET, "/"))
 
       status(home) mustBe OK

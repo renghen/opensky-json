@@ -10,10 +10,9 @@ import scala.io.Source
 import java.time.Instant
 import org.checkerframework.checker.units.qual.s
 import scala.util.Random
-import models.opensky.StateProcessingTest
 
 class StateProcessingAltSliceSpec extends PlaySpec {
-  val stateProcessing = new StateProcessingTest()
+  val stateProcessing = new StateProcessing(2)
   val rand = new Random
   import StateJsonProtocol._
 
