@@ -4,7 +4,7 @@ import javax.inject._
 import play.api._
 import play.api.mvc._
 import scala.concurrent.ExecutionContext
-import model.opensky._
+import models.opensky._
 import scala.util.Success
 import scala.concurrent.Future
 import scala.util.Failure
