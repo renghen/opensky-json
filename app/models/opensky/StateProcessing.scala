@@ -20,7 +20,7 @@ final class StateProcessing(delayTime: Int) {
   private val countryOrigin: mutable.HashMap[Country, Int] = mutable.HashMap.empty[Country, Int]
   private val planeAboveNetherlands: mutable.HashMap[Icao24, Long] = mutable.HashMap.empty[Icao24, Long]
 
-  def toCountries(state: State): Unit = {
+  private def insertIntoTopCountries(state: State): Unit = {
     val isFound = listOfIcao24.find(code => code == state.icao24) // we check for unique planes
     isFound match {
       case None =>
@@ -44,7 +44,7 @@ final class StateProcessing(delayTime: Int) {
     }
   }
 
-  def isAboveNetherlandsFor1Hour(state: State) = {
+  private def isAboveNetherlandsFor1Hour(state: State) = {
     val newTime = if (state.timePosition.isDefined) {
       state.timePosition.get
     } else {
@@ -62,7 +62,13 @@ final class StateProcessing(delayTime: Int) {
     }
   }
 
-  def aboveNetherlands() = {
+  /** Code to return all planes that are above the Netherlands for last hour
+    *
+    * @return
+    *   map of ICAO24 and the last time they were in that place
+    */
+  def aboveNetherlands(): Map[Icao24, Long] = {
+    logger.info(s"aboveNetherlands")
     val since = Instant.now().getEpochSecond - delay
     val toRemove = planeAboveNetherlands.view.filter(pred => pred._2 < since).keys
     planeAboveNetherlands.subtractAll(toRemove)
@@ -120,7 +126,7 @@ final class StateProcessing(delayTime: Int) {
   def processState(state: State) = {
     logger.info(s"state: ${state}")
     addToState(state)
-    toCountries(state)
+    insertIntoTopCountries(state)
     isAboveNetherlandsFor1Hour(state)
   }
 }

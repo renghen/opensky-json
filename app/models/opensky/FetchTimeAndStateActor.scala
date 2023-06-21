@@ -3,9 +3,7 @@ package models.opensky
 import play.api.{Configuration, Logger}
 
 import akka.Done
-import akka.actor.Actor
-import akka.actor.Props
-import akka.actor.ActorSystem
+import akka.actor.{Actor, ActorSystem, Props}
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.http.scaladsl.common.{EntityStreamingSupport, JsonEntityStreamingSupport}
 import akka.http.scaladsl.model.HttpResponse
@@ -16,42 +14,52 @@ import spray.json._
 
 import scala.concurrent.{ExecutionContext, Future}
 
-import javax.inject.{Inject, Singleton}
-import com.google.inject.ImplementedBy
+import javax.inject.Inject
 
 object FetchTimeAndStateActor {
   final val url = "https://opensky-network.org/api/states/all"
+
   def props = Props[FetchTimeAndStateActor]()
 
-  case class SayHello(name: String)
   case object Fetch
+  case object OverNetherlands
+  case object TopCountries
+  case object GetSlices
 }
 
 class FetchTimeAndStateActor @Inject() (configuration: Configuration)(implicit
     ec: ExecutionContext
 ) extends Actor {
+  val logger: Logger = Logger(this.getClass())
+
   import StateJsonProtocol._
   import FetchTimeAndStateActor._
 
   val url = configuration.getOptional[String]("opensky.url").getOrElse(FetchTimeAndStateActor.url)
   val delayTime = configuration.getOptional[Int]("opensky.top.time").getOrElse(3600)
   val stateProcessing: StateProcessing = new StateProcessing(delayTime)
-  val logger: Logger = Logger(this.getClass())
 
   implicit val system: ActorSystem = ActorSystem("SingleRequest")
   implicit val jsonStreamingSupport: JsonEntityStreamingSupport = EntityStreamingSupport.json()
 
   override def receive: Receive = {
-    case SayHello(name: String) => {
-      logger.info(s"hello, $name")
+    case OverNetherlands => {
+      logger.info(s"Over Netherlands for past hour")
+      stateProcessing.aboveNetherlands().size
+    }
+
+    case TopCountries => {
+      logger.info(s"TopCountries since running...")
+      stateProcessing.getCountries()
     }
 
     case Fetch => {
-      logger.info(s"Fetching...")
+      logger.info(s"Fetching from opensky...")
+      getAirPlanes().flatMap(_ => Future.successful(stateProcessing.statesLoaded()))
     }
   }
 
-  def getAirPlanes(): Future[Seq[State]] = {
+  def getAirPlanes(): Future[Done] = {
     import akka.stream.alpakka.json.scaladsl.JsonReader
 
     val request = Get(url)
@@ -64,13 +72,6 @@ class FetchTimeAndStateActor @Inject() (configuration: Configuration)(implicit
         .mapConcat(identity)
     }
     val source: Source[State, Future[Any]] = Source.futureSource(unmarshalled)
-    val result = source.runWith(Sink.foreach { state => stateProcessing.processState(state) })
-    result.map(_ => { Seq.empty[State] })
-    result.flatMap(_ =>
-      Future[Seq[State]] {
-        stateProcessing.statesLoaded()
-        stateProcessing.getLoadedStates()
-      }
-    )
+    source.runWith(Sink.foreach { state => stateProcessing.processState(state) })
   }
 }
