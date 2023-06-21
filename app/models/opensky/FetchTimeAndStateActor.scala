@@ -50,7 +50,8 @@ class FetchTimeAndStateActor @Inject() (configuration: Configuration)(implicit
 
     case TopCountries => {
       logger.info(s"TopCountries since running...")
-      stateProcessing.getCountries()
+      val countries = stateProcessing.getCountries()
+      sender() ! countries
     }
 
     case Fetch => {
