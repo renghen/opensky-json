@@ -15,6 +15,8 @@ import spray.json._
 import scala.concurrent.{ExecutionContext, Future}
 
 import javax.inject.Inject
+import scala.util.Success
+import scala.util.Failure
 
 object FetchTimeAndStateActor {
   final val url = "https://opensky-network.org/api/states/all"
@@ -55,9 +57,19 @@ class FetchTimeAndStateActor @Inject() (configuration: Configuration)(implicit
       sender() ! countries
     }
 
+    case GetSlices => {
+      logger.info(s"Get slices of last fetch...")
+      val slices = stateProcessing.getSlices()
+      sender() ! slices
+    }
+
     case Fetch => {
       logger.info(s"Fetching from opensky...")
-      getAirPlanes().flatMap(_ => Future.successful(stateProcessing.statesLoaded()))
+      getAirPlanes().andThen {
+        case Success(_) => stateProcessing.statesLoaded()
+        case Failure(exception) =>
+          logger.error(s"Error while fetching from opensky...${exception.getMessage()}")
+      }
     }
   }
 

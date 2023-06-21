@@ -53,4 +53,21 @@ class OpenSkyController @Inject() (
       Ok(countJson)
     }
   }
+
+  def slice(id: Int) = Action.async { implicit request: Request[AnyContent] =>
+    import StateOfFlyJsonProtocol._
+    val slicesFuture = (fetchTimeAndStateActor ? GetSlices).mapTo[Map[Long, List[StateOfFly]]]
+
+    slicesFuture.map { slices =>
+      logger.info(s"slices size: ${slices.size}")
+      slices.get(id) match {
+        case None => Ok("[]")
+        case Some(lst) => {
+          logger.info(s"planes in slice($id): $lst")
+          val lstJson = lst.toJson.toString()
+          Ok(lstJson)
+        }
+      }
+    }
+  }
 }

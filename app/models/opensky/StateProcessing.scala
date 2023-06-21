@@ -89,6 +89,7 @@ final class StateProcessing(delayTime: Int) {
   }
 
   def statesLoaded(): Unit = {
+    logger.info(s"statesLoaded...")
     val stateflyList = listOfStates.map { state =>
       val baroAltitude = state.baroAltitude.getOrElse(0.0)
       val time = state.timePosition.getOrElse(state.lastContact)
@@ -124,7 +125,6 @@ final class StateProcessing(delayTime: Int) {
   def getSlices() = flyAltitude.toMap
 
   def processState(state: State) = {
-    logger.info(s"state: ${state}")
     addToState(state)
     insertIntoTopCountries(state)
     isAboveNetherlandsFor1Hour(state)
