@@ -68,7 +68,7 @@ final class StateProcessing(delayTime: Int) {
     *   map of ICAO24 and the last time they were in that place
     */
   def aboveNetherlands(): Map[Icao24, Long] = {
-    logger.info(s"aboveNetherlands")
+    logger.debug(s"aboveNetherlands")
     val since = Instant.now().getEpochSecond - delay
     val toRemove = planeAboveNetherlands.view.filter(pred => pred._2 < since).keys
     planeAboveNetherlands.subtractAll(toRemove)
@@ -84,12 +84,12 @@ final class StateProcessing(delayTime: Int) {
   }
 
   def getLoadedStates() = {
-    logger.info(s"length of state: ${listOfStates.length}")
+    logger.debug(s"length of state: ${listOfStates.length}")
     listOfStates.toList
   }
 
   def statesLoaded(): Unit = {
-    logger.info(s"statesLoaded...")
+    logger.debug(s"statesLoaded...")
     val stateflyList = listOfStates.map { state =>
       val baroAltitude = state.baroAltitude.getOrElse(0.0)
       val time = state.timePosition.getOrElse(state.lastContact)
