@@ -57,6 +57,17 @@ class OpenSkyController @Inject() (
     }
   }
 
+  implicit object FlyStatusOrdering extends Ordering[FlyStatus] {
+    def compare(x: FlyStatus, y: FlyStatus): Int =
+      (x, y) match {
+        // assuming that the ordering is Pending < InProgress < Success < Fail...
+        case (_, _) if (x eq y)                    => 0
+        case (FlyStatus.NORMAL, FlyStatus.WARNING) => 1
+        case (FlyStatus.WARNING, FlyStatus.NORMAL) => -1
+        case _                                     => 0
+      }
+  }
+
   def slice(id: Int) = Action.async { implicit request: Request[AnyContent] =>
     import StateOfFlyJsonProtocol._
     val slicesFuture = (fetchTimeAndStateActor ? GetSlices).mapTo[Map[Long, List[StateOfFly]]]
@@ -66,8 +77,8 @@ class OpenSkyController @Inject() (
       slices.get(id) match {
         case None => Ok("[]")
         case Some(lst) => {
-          logger.info(s"sending... planes in slice($id): $lst")
-          val lstJson = lst.toJson.toString()
+          logger.info(s"sending... planes in slice($id): $lst")          
+          val lstJson = lst.sortBy(_.status).toJson.toString()
           Ok(lstJson)
         }
       }
