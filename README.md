@@ -44,6 +44,6 @@ To clean the artifacts, you only have to run the clean.sh file.
 Add executable permission on the file, then do
 
 ```bash
-./clean.sh  
+./clean.sh
 ```
-It will not destroy the docker image.
+It will also remove the docker image.

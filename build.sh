@@ -9,4 +9,4 @@ mv open-sky/bin/* open-sky/bin/start # rename startup file to start
 rm -rf open-sky/opensky-json-1.0/ # remove empty folder
 
 echo "********* building docker *********"
-docker build -t open-sky .
+docker build -t open-sky:1.0 .
