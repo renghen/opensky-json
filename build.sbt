@@ -15,9 +15,3 @@ libraryDependencies ++= Seq(
   "com.lightbend.akka" %% "akka-stream-alpakka-json-streaming" % "4.0.0",
   "org.scalatestplus.play" %% "scalatestplus-play" % "5.0.0" % Test
 )
-
-// Adds additional packages into Twirl
-//TwirlKeys.templateImports += "com.renghen.controllers._"
-
-// Adds additional packages into conf/routes
-// play.sbt.routes.RoutesKeys.routesImport += "com.renghen.binders._"

@@ -31,14 +31,16 @@ class OpenSkyController @Inject() (
   import FetchTimeAndStateActor._
 
   def top3Countries() = Action.async { implicit request: Request[AnyContent] =>
+    import TopCountryJsonProtocol._
     val topCountriesFuture = (fetchTimeAndStateActor ? TopCountries).mapTo[Map[String, Int]]
+
     topCountriesFuture.map { topCountries =>
       if (topCountries.size == 0) {
-        Ok("{}")
+        Ok("[]")
       } else {
-        val top3 = ListMap(topCountries.toSeq.sortWith(_._2 > _._2): _*).take(3).toMap
+        val top3 = ListMap(topCountries.toSeq.sortWith(_._2 > _._2): _*).take(3).map(TopCountry.tupled)
         val top3Json = top3.toJson.toString()
-        logger.info(s"Top 3 countries: $top3Json")
+        logger.info(s"Sending... Top 3 countries: $top3Json")
         Ok(top3Json)
       }
     }
@@ -46,10 +48,11 @@ class OpenSkyController @Inject() (
 
   def overNetherlandsforlastHour() = Action.async { implicit request: Request[AnyContent] =>
     val overNetherlandsFuture = (fetchTimeAndStateActor ? OverNetherlands).mapTo[Int]
+
     overNetherlandsFuture.map { count =>
       val map = Map(("count" -> count))
       val countJson = map.toJson.toString()
-      logger.info(s"Planes over Netherlands within lastHour: $count")
+      logger.info(s"sending... Planes over Netherlands within lastHour: $countJson")
       Ok(countJson)
     }
   }
@@ -63,7 +66,7 @@ class OpenSkyController @Inject() (
       slices.get(id) match {
         case None => Ok("[]")
         case Some(lst) => {
-          logger.info(s"planes in slice($id): $lst")
+          logger.info(s"sending... planes in slice($id): $lst")
           val lstJson = lst.toJson.toString()
           Ok(lstJson)
         }
