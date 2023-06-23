@@ -35,6 +35,6 @@ export default {
 <template>
     <div class="pb-5 px-10">
         <h1 :key="flight.count" class="text-slate-700 font-bold text-2xl border-solid border-b-4 border-indigo-400 pb-3">Number
-            of flights above Netherlands in last hour : {{ flight.count }}</h1>
+            of flights above Netherlands in last hour {{ flight.count }}</h1>
     </div>
 </template>
