@@ -77,7 +77,7 @@
 //       slices.get(id) match {
 //         case None => Ok("[]")
 //         case Some(lst) => {
-//           logger.info(s"sending... planes in slice($id): $lst")          
+//           logger.info(s"sending... planes in slice($id): $lst")
 //           val lstJson = lst.sortBy(_.status).toJson.toString()
 //           Ok(lstJson)
 //         }

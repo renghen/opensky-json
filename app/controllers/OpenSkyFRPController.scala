@@ -22,13 +22,17 @@ import scala.collection.immutable.ListMap
   */
 @Singleton
 class OpenSkyFRPController @Inject() (
-    val controllerComponents: ControllerComponents,
+    val controllerComponents: ControllerComponents
     // @Named("fetchTimeAndState-actor") fetchTimeAndStateActor: ActorRef
 )(implicit ec: ExecutionContext)
     extends BaseController {
   val logger: Logger = Logger(this.getClass())
   implicit val timeout: Timeout = 5.seconds
 //   import FetchTimeAndStateActor._
+
+  def doNothing() = Action {
+    Ok("do nothing")
+  }
 
 //   def top3Countries() = Action.async { implicit request: Request[AnyContent] =>
 //     import TopCountryJsonProtocol._
@@ -77,7 +81,7 @@ class OpenSkyFRPController @Inject() (
 //       slices.get(id) match {
 //         case None => Ok("[]")
 //         case Some(lst) => {
-//           logger.info(s"sending... planes in slice($id): $lst")          
+//           logger.info(s"sending... planes in slice($id): $lst")
 //           val lstJson = lst.sortBy(_.status).toJson.toString()
 //           Ok(lstJson)
 //         }

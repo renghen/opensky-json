@@ -18,6 +18,6 @@ import javax.inject.Inject
 import scala.util.Success
 import scala.util.Failure
 
-class FetchTimeAndStateFRP {
-  
-}
+class FetchTimeAndStateFRP @Inject() (configuration: Configuration)(implicit
+    ec: ExecutionContext
+) {}
