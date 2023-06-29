@@ -4,10 +4,8 @@
 # ~~~~
 
 # GET     /top3Countries                controllers.OpenSkyController.top3Countries()
-# GET     /overNetherlandsforlastHour   controllers.OpenSkyController.overNetherlandsforlastHour()
-# GET     /slice/:id                    controllers.OpenSkyController.slice(id: Int)
-
-GET       /                             controllers.OpenSkyFRPController.doNothing()
+GET     /overNetherlandsforlastHour   controllers.OpenSkyFRPController.overNetherlandsforlastHour()
+GET     /slice/:id                    controllers.OpenSkyFRPController.slice(id: Int)
 
 # Map static resources from the /public folder to the /assets URL path
 GET     /assets/*file               controllers.Assets.versioned(path="/public", file: Asset)

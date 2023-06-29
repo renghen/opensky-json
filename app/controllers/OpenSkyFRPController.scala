@@ -24,21 +24,10 @@ import scala.collection.immutable.ListMap
 class OpenSkyFRPController @Inject() (
     val controllerComponents: ControllerComponents,
     val fetchTimeAndStateFRP: FetchTimeAndStateFRP
-    // @Named("fetchTimeAndState-actor") fetchTimeAndStateActor: ActorRef
 )(implicit ec: ExecutionContext)
     extends BaseController {
   val logger: Logger = Logger(this.getClass())
   implicit val timeout: Timeout = 5.seconds
-//   import FetchTimeAndStateActor._
-
-  def doNothing() = Action.async {
-    fetchTimeAndStateFRP
-      .getAirPlanes()
-      .map { map =>
-        // Ok(map.mkString(","))
-        Ok("")
-      }
-  }
 
 //   def top3Countries() = Action.async { implicit request: Request[AnyContent] =>
 //     import TopCountryJsonProtocol._
@@ -56,16 +45,16 @@ class OpenSkyFRPController @Inject() (
 //     }
 //   }
 
-//   def overNetherlandsforlastHour() = Action.async { implicit request: Request[AnyContent] =>
-//     val overNetherlandsFuture = (fetchTimeAndStateActor ? OverNetherlands).mapTo[Int]
+  def overNetherlandsforlastHour() = Action.async { implicit request: Request[AnyContent] =>
+    val overNetherlandsFuture = fetchTimeAndStateFRP.overNetherlands()
 
-//     overNetherlandsFuture.map { count =>
-//       val map = Map(("count" -> count))
-//       val countJson = map.toJson.toString()
-//       logger.info(s"sending... Planes over Netherlands within lastHour: $countJson")
-//       Ok(countJson)
-//     }
-//   }
+    overNetherlandsFuture.map { count =>
+      val map = Map(("count" -> count))
+      val countJson = map.toJson.toString()
+      logger.info(s"sending... Planes over Netherlands within lastHour: $countJson")
+      Ok(countJson)
+    }
+  }
 
   implicit object FlyStatusOrdering extends Ordering[FlyStatus] {
     def compare(x: FlyStatus, y: FlyStatus): Int =
@@ -78,20 +67,20 @@ class OpenSkyFRPController @Inject() (
       }
   }
 
-//   def slice(id: Int) = Action.async { implicit request: Request[AnyContent] =>
-//     import StateOfFlyJsonProtocol._
-//     val slicesFuture = (fetchTimeAndStateActor ? GetSlices).mapTo[Map[Long, List[StateOfFly]]]
+  def slice(id: Int) = Action.async { implicit request: Request[AnyContent] =>
+    import StateOfFlyJsonProtocol._
+    val slicesFuture = fetchTimeAndStateFRP.getSlices()
 
-//     slicesFuture.map { slices =>
-//       logger.info(s"slices size: ${slices.size}")
-//       slices.get(id) match {
-//         case None => Ok("[]")
-//         case Some(lst) => {
-//           logger.info(s"sending... planes in slice($id): $lst")
-//           val lstJson = lst.sortBy(_.status).toJson.toString()
-//           Ok(lstJson)
-//         }
-//       }
-//     }
-//   }
+    slicesFuture.map { slices =>
+      logger.info(s"slices size: ${slices.size}")
+      slices.get(id) match {
+        case None => Ok("[]")
+        case Some(lst) => {
+          logger.info(s"sending... planes in slice($id): ${lst.length}")
+          val lstJson = lst.sortBy(_.status).toJson.toString()
+          Ok(lstJson)
+        }
+      }
+    }
+  }
 }
