@@ -25,10 +25,11 @@ class StateProcessingAboveNetherlandsFileSpec extends PlaySpec {
   val str = fileSource.getLines().toList.mkString("\n")
   val jsonAst = str.parseJson
   val statesInNetherlands = jsonAst.convertTo[Vector[State]]
-  val rand = new Random()
   val source = Source
     .fromIterator(() => statesInNetherlands.iterator)
-  val config = Configuration("opensky.interval" -> 2)
+
+  val rand = new Random()
+  val config = Configuration("opensky.top.time" -> 2)
   val fetchTimeAndStateFRP = new FetchTimeAndStateFRP(config)
 
   implicit val system: ActorSystem = ActorSystem("SingleRequest")

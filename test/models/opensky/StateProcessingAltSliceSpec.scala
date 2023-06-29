@@ -4,27 +4,36 @@ import org.scalatest._
 import org.scalatestplus.play.PlaySpec
 import matchers._
 import play.api.test.Helpers._
+import play.api.Configuration
 
+import akka.actor.ActorSystem
+import akka.stream.scaladsl.{Flow, Sink, Source}
 import spray.json._
-import scala.io.Source
-import java.time.Instant
-import org.checkerframework.checker.units.qual.s
+
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.io
 import scala.util.Random
+
+import java.time.Instant
 
 class StateProcessingAltSliceSpec extends PlaySpec {
   val stateProcessing = new StateProcessing(2)
   val rand = new Random
+  val config = Configuration("opensky.top.time" -> 2)
+  val fetchTimeAndStateFRP = new FetchTimeAndStateFRP(config)
+  val flow = fetchTimeAndStateFRP.slices
+
+  implicit val system: ActorSystem = ActorSystem("SingleRequest")
   import StateJsonProtocol._
 
-  def resetAndLoad(str: String)(transform: State => State) = {
+  def loadFromStream(str: String)(transform: State => State) = {
     val jsonAst = str.parseJson
     val states = jsonAst.convertTo[Vector[State]]
-
-    stateProcessing.resetStates()
-    states.foreach { state =>
-      stateProcessing.processState(transform(state))
-    }
-    stateProcessing.statesLoaded()
+    val source = Source
+      .fromIterator(() => states.iterator)
+      .map(transform)
+    val resultFuture = source.via(flow).runWith(Sink.head)
+    await(resultFuture)
   }
 
   "slice" must {
@@ -36,8 +45,7 @@ class StateProcessingAltSliceSpec extends PlaySpec {
           ["4b1817","EDW215P ","Switzerland",1686852669,1686852669,-14.5886,32.1815,10965.18,false,251.4,33.82,0.33,null,11635.74,null,false,0]
         ]
       """
-      resetAndLoad(str)(identity)
-      val slices = stateProcessing.getSlices()
+      val slices = loadFromStream(str)(identity)
       assert(slices.size == 3)
       val sortedList = slices.keys.toList.sorted
       assert(sortedList == List(2, 10, 11))
@@ -51,20 +59,19 @@ class StateProcessingAltSliceSpec extends PlaySpec {
           ["4b1817","EDW215P ","Switzerland",1686852669,1686852669,-14.5886,32.1815,2965.18,false,251.4,33.82,0.33,null,11635.74,null,false,0]
         ]
       """
-      resetAndLoad(str)(identity)
-      val slices = stateProcessing.getSlices()
+      val slices = loadFromStream(str)(identity)
       assert(slices.keys.toList.length == 1)
+
       val sortedList = slices.keys.toList.sorted
       assert(sortedList == List(2))
       assert(slices(2).length == 3)
     }
-    val source = Source.fromResource("netherlands.json")
+
+    val source = io.Source.fromResource("netherlands.json")
     val netherlandsStr = source.getLines().toList.mkString("\n")
     "states from file netherlands" in {
+      val slices = loadFromStream(netherlandsStr)(identity)
 
-      resetAndLoad(netherlandsStr)(identity)
-
-      val slices = stateProcessing.getSlices()
       assert(slices.keys.toList.length == 11)
 
       val sortedList = slices.keys.toList.sorted
@@ -85,14 +92,14 @@ class StateProcessingAltSliceSpec extends PlaySpec {
     }
 
     "states from file netherlands with US & UK change slice" in {
-      resetAndLoad(netherlandsStr) { state: State =>
+      val slices = loadFromStream(netherlandsStr) { state: State =>
         if (state.originCountry.contains("United")) {
           state.copy(verticalRate = Some(-1000.0), baroAltitude = state.baroAltitude.map(_ + 1000))
         } else {
           state
         }
       }
-      val slices = stateProcessing.getSlices()
+
       val sortedList = slices.keys.toList.sorted
       val listValues = sortedList.map(slices)
       val totalStates = listValues.flatten.length

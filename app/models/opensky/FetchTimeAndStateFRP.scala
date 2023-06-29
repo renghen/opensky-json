@@ -38,8 +38,9 @@ class FetchTimeAndStateFRP @Inject() (configuration: Configuration)(implicit
 
   val logger: Logger = Logger(this.getClass())
   val url = configuration.getOptional[String]("opensky.url").getOrElse(FetchTimeAndStateFRP.url)
-  val interval = configuration.getMillis("opensky.interval")
-  logger.info(s"opensky scheduler interval $interval")
+  val delayTime = configuration.getOptional[Int]("opensky.top.time").getOrElse(3600)
+
+  logger.info(s"opensky time over Netherlands: $delayTime")
 
   def getAirPlanes() = {
     import akka.stream.alpakka.json.scaladsl.JsonReader
@@ -54,9 +55,9 @@ class FetchTimeAndStateFRP @Inject() (configuration: Configuration)(implicit
     }
 
     val source: Source[State, Future[Any]] = Source.futureSource(unmarshalled)
-    val sink = Sink.seq[StateOfFly]
+    // val sink = Sink.head[StateOfFly]
     val flow = slices
-    val graph = source.via(flow).runWith(sink) // runWith(Sink.seq)
+    val graph = source.via(flow).runWith(Sink.head) // runWith(Sink.seq)
     graph
   }
 
@@ -110,7 +111,6 @@ class FetchTimeAndStateFRP @Inject() (configuration: Configuration)(implicit
       } else {
         FlyStatus.NORMAL
       }
-
       StateOfFly(
         state.icao24,
         state.callsign,
@@ -122,5 +122,9 @@ class FetchTimeAndStateFRP @Inject() (configuration: Configuration)(implicit
         verticalRate,
         flyStatus
       )
+    }
+    .fold(HashMap.empty[Long, List[StateOfFly]]) { case (map, el) =>
+      map +
+        (el.baroAltitudeSlice -> (map.get(el.baroAltitudeSlice).getOrElse(Nil)).prepended(el))
     }
 }

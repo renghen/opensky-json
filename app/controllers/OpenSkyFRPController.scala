@@ -35,7 +35,8 @@ class OpenSkyFRPController @Inject() (
     fetchTimeAndStateFRP
       .getAirPlanes()
       .map { map =>
-        Ok(map.mkString(","))
+        // Ok(map.mkString(","))
+        Ok("")
       }
   }
 
