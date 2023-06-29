@@ -22,7 +22,8 @@ import scala.collection.immutable.ListMap
   */
 @Singleton
 class OpenSkyFRPController @Inject() (
-    val controllerComponents: ControllerComponents
+    val controllerComponents: ControllerComponents,
+    val fetchTimeAndStateFRP: FetchTimeAndStateFRP
     // @Named("fetchTimeAndState-actor") fetchTimeAndStateActor: ActorRef
 )(implicit ec: ExecutionContext)
     extends BaseController {
@@ -30,8 +31,12 @@ class OpenSkyFRPController @Inject() (
   implicit val timeout: Timeout = 5.seconds
 //   import FetchTimeAndStateActor._
 
-  def doNothing() = Action {
-    Ok("do nothing")
+  def doNothing() = Action.async {
+    fetchTimeAndStateFRP
+      .getAirPlanes()
+      .map { map =>
+        Ok(map.mkString(","))
+      }
   }
 
 //   def top3Countries() = Action.async { implicit request: Request[AnyContent] =>
