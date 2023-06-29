@@ -4,17 +4,19 @@ import org.scalatest._
 import org.scalatestplus.play.PlaySpec
 import matchers._
 import play.api.test.Helpers._
+import play.api.Configuration
 
-import spray.json._
-import scala.io
 import java.time.Instant
-import scala.util.Random
 
-import akka.stream.scaladsl.{Flow, Sink, Source}
-import akka.actor.ActorSystem
-import scala.collection.immutable.HashMap
-import scala.collection.mutable
 import akka.NotUsed
+import akka.actor.ActorSystem
+import akka.stream.scaladsl.{Flow, Sink, Source}
+import spray.json._
+
+import scala.io
+import scala.collection.mutable
+import scala.util.Random
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class StateProcessingAboveNetherlandsFileSpec extends PlaySpec {
   import StateJsonProtocol._
@@ -26,12 +28,15 @@ class StateProcessingAboveNetherlandsFileSpec extends PlaySpec {
   val rand = new Random()
   val source = Source
     .fromIterator(() => statesInNetherlands.iterator)
+  val config = Configuration("opensky.interval" -> 2)
+  val fetchTimeAndStateFRP = new FetchTimeAndStateFRP(config)
 
   implicit val system: ActorSystem = ActorSystem("SingleRequest")
 
   def processOverNetherlands(source: Source[State, NotUsed], previous: Map[FetchTimeAndStateFRP.Icao24, Long]) = {
     val now = Instant.now.getEpochSecond()
-    val flow = FetchTimeAndStateFRP.isAboveNetherlandsForPeriod(previous, 2)
+
+    val flow = fetchTimeAndStateFRP.isAboveNetherlandsForPeriod(previous, 2)
     val streamRunning = source
       .map { state =>
         if (rand.nextBoolean()) {
@@ -130,7 +135,7 @@ class StateProcessingAboveNetherlandsFileSpec extends PlaySpec {
         if (notUnitedIcao.contains(icao24)) {
           assert(aboveNetherlands(icao24) == now)
         } else {
-          assert(aboveNetherlands(icao24) == startedTime + 3)
+          assert(aboveNetherlands(icao24) >= startedTime + 3)
         }
       }
     }

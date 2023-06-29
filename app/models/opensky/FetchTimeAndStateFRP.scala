@@ -25,6 +25,40 @@ import akka.NotUsed
 object FetchTimeAndStateFRP {
   type Icao24 = String
   final val url = "https://opensky-network.org/api/states/all"
+}
+
+class FetchTimeAndStateFRP @Inject() (configuration: Configuration)(implicit
+    ec: ExecutionContext
+) {
+  import FetchTimeAndStateFRP.Icao24
+  import StateJsonProtocol._
+
+  implicit val system: ActorSystem = ActorSystem("SingleRequest")
+  implicit val jsonStreamingSupport: JsonEntityStreamingSupport = EntityStreamingSupport.json()
+
+  val logger: Logger = Logger(this.getClass())
+  val url = configuration.getOptional[String]("opensky.url").getOrElse(FetchTimeAndStateFRP.url)
+  val interval = configuration.getMillis("opensky.interval")
+  logger.info(s"opensky scheduler interval $interval")
+
+  def getAirPlanes() = {
+    import akka.stream.alpakka.json.scaladsl.JsonReader
+
+    val request = Get(url)
+    val responseFuture = Http().singleRequest(request)
+    val unmarshalled = responseFuture.map { response =>
+      response.entity.dataBytes
+        .via(JsonReader.select("$.states"))
+        .mapAsync(1)(bytes => Unmarshal(bytes).to[Seq[State]])
+        .mapConcat(identity)
+    }
+
+    val source: Source[State, Future[Any]] = Source.futureSource(unmarshalled)
+    val sink = Sink.seq[StateOfFly]
+    val flow = slices
+    val graph = source.via(flow).runWith(sink) // runWith(Sink.seq)
+    graph
+  }
 
   def isAboveNetherlandsForPeriod(
       previousMap: Map[Icao24, Long],
@@ -59,51 +93,6 @@ object FetchTimeAndStateFRP {
     } else {
       state.lastContact
     }
-  }
-}
-
-class FetchTimeAndStateFRP @Inject() (configuration: Configuration)(implicit
-    ec: ExecutionContext
-) {
-
-  import StateJsonProtocol._
-
-  implicit val system: ActorSystem = ActorSystem("SingleRequest")
-  implicit val jsonStreamingSupport: JsonEntityStreamingSupport = EntityStreamingSupport.json()
-
-  val logger: Logger = Logger(this.getClass())
-  val url = configuration.getOptional[String]("opensky.url").getOrElse(FetchTimeAndStateFRP.url)
-  val interval = configuration.getMillis("opensky.interval")
-  logger.info(s"opensky scheduler interval $interval")
-
-  def fetchPeriodically() = {
-    Source
-      .tick(
-        0.second, // delay of first tick
-        interval.milli, // delay of subsequent ticks
-        "tick" // element emitted each tick
-      )
-      .runForeach(s => logger.info(s))
-  }
-
-  def getAirPlanes() = {
-    import akka.stream.alpakka.json.scaladsl.JsonReader
-
-    val request = Get(url)
-    val responseFuture = Http().singleRequest(request)
-    // stateProcessing.resetStates()
-    val unmarshalled = responseFuture.map { response =>
-      response.entity.dataBytes
-        .via(JsonReader.select("$.states"))
-        .mapAsync(1)(bytes => Unmarshal(bytes).to[Seq[State]])
-        .mapConcat(identity)
-    }
-
-    val source: Source[State, Future[Any]] = Source.futureSource(unmarshalled)
-    val sink = Sink.seq[StateOfFly]
-    val flow = slices
-    val graph = source.via(flow).runWith(sink) // runWith(Sink.seq)
-    graph
   }
 
   val slices = Flow[State]
