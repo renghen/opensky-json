@@ -11,27 +11,24 @@ import akka.http.scaladsl.common.{EntityStreamingSupport, JsonEntityStreamingSup
 import akka.http.scaladsl.model.HttpResponse
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.http.scaladsl.Http
-import akka.stream.ClosedShape
-import akka.stream.scaladsl.{Broadcast, Flow, GraphDSL, Sink, Source, Zip}
+import akka.stream.{ClosedShape, FlowShape}
+import akka.stream.scaladsl.{Broadcast, Flow, GraphDSL, RunnableGraph, Sink, Source}
 import spray.json._
 
-import scala.concurrent.{ExecutionContext, Future}
-import scala.concurrent.duration._
-import scala.util.{Failure, Success}
 import scala.collection.immutable.HashMap
 import scala.collection.mutable
+import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.duration._
 
 import javax.inject.Inject
 import java.time.Instant
-import akka.stream.scaladsl.RunnableGraph
-import akka.stream.FlowShape
 
 object FetchTimeAndStateFRP {
   type Icao24 = String
   final val url = "https://opensky-network.org/api/states/all"
-
-  // def props = Props[FetchTimeAndStateActor]()
 }
+
+final case class CodeCountry(icao24: String, country: String)
 
 class FetchTimeAndStateFRP @Inject() (configuration: Configuration)(implicit
     ec: ExecutionContext
@@ -45,36 +42,49 @@ class FetchTimeAndStateFRP @Inject() (configuration: Configuration)(implicit
   val logger: Logger = Logger(this.getClass())
   val url = configuration.getOptional[String]("opensky.url").getOrElse(FetchTimeAndStateFRP.url)
   val delayTime = configuration.getOptional[Int]("opensky.top.time").getOrElse(3600)
+  logger.info(s"opensky time over Netherlands: $delayTime")
 
   private val netherlandsForPeriodFuture: Future[mutable.HashMap[Icao24, Long]] =
     Future.successful(mutable.HashMap.empty[Icao24, Long])
+
   private val slicesFuture: Future[mutable.HashMap[Long, List[StateOfFly]]] =
     Future.successful(mutable.HashMap.empty[Long, List[StateOfFly]])
 
-  logger.info(s"opensky time over Netherlands: $delayTime")
+  private val listOfCodeCountryFuture: Future[mutable.ArrayBuffer[CodeCountry]] =
+    Future.successful(mutable.ArrayBuffer.empty[CodeCountry])
 
-  Source.tick(0.second, 1.minute, getAirPlanes()).runForeach { result =>
-    logger.info(s"fetching...")
+  Source.tick(0.second, 1.minute, "tick").runForeach { _ =>
+    for {
+      result <- getAirPlanes()
+      netherlands = result._1
+      newSlices = result._2
+      newLstCountryCode = result._3
 
-    val netherlands: Future[Map[Icao24, Long]] = result._1
-    netherlands.flatMap { map =>
-      netherlandsForPeriodFuture.map { oriMap => oriMap.addAll(map) }
-    }
+      nethersPeriod <- netherlandsForPeriodFuture
+      _ = nethersPeriod.addAll(netherlands)
 
-    val slices: Future[HashMap[Long, List[StateOfFly]]] = result._2
-    slices.flatMap { sl =>
-      slicesFuture.map { re =>
-        re.clear(); re.addAll(sl)
-      }
-    }
+      slices <- slicesFuture
+      _ = slices.clear()
+      _ = slices.addAll(newSlices)
+
+      listOfCodeCountry <- listOfCodeCountryFuture
+      _ = listOfCodeCountry.addAll(newLstCountryCode)
+    } yield ()
   }
 
   def overNetherlands(): Future[Int] = netherlandsForPeriodFuture.map(_.toMap.size)
 
   def getSlices(): Future[Map[Long, List[StateOfFly]]] = slicesFuture.map { _.toMap }
 
+  def topCountries(): Future[Map[String, Int]] = {
+    listOfCodeCountryFuture.map { lst =>
+      lst.map(_.country).groupMapReduce(identity)(_ => 1) { (acc, el) => acc + el }
+    }
+  }
+
   def getAirPlanes() = {
     import akka.stream.alpakka.json.scaladsl.JsonReader
+    logger.info(s"fetching airplanes data...")
 
     val request = Get(url)
     val responseFuture = Http().singleRequest(request)
@@ -85,28 +95,49 @@ class FetchTimeAndStateFRP @Inject() (configuration: Configuration)(implicit
         .mapConcat(identity)
     }
 
-    val source: Source[State, Future[Any]] = Source.futureSource(unmarshalled)
+    for {
+      source <- unmarshalled
+      netherlandsForPeriod <- netherlandsForPeriodFuture
+      listOfCodeCountry <- listOfCodeCountryFuture
+      result <- graphBuildingAndRunning(source, netherlandsForPeriod.toMap, listOfCodeCountry.toVector)
+    } yield (result)
+
+  }
+
+  def graphBuildingAndRunning(
+      source: Source[State, Any],
+      netherlandsForPeriod: Map[Icao24, Long],
+      icao24Vec: Vector[CodeCountry]
+  ): Future[(Map[Icao24, Long], HashMap[Long, List[StateOfFly]], Seq[CodeCountry])] = {
     val netherlandsSink = Sink.head[Map[Icao24, Long]]
     val sliceSink = Sink.head[HashMap[Long, List[StateOfFly]]]
+    val countryCodesSink = Sink.seq[CodeCountry]
 
-    val graph = GraphDSL.createGraph(netherlandsSink, sliceSink)((_, _)) { implicit builder => (netherlands, slice) =>
-      import GraphDSL.Implicits._ // brings some nice operators in scope
-      val input = builder.add(source) // the initial elements
+    val graph = GraphDSL.createGraph(netherlandsSink, sliceSink, countryCodesSink)((_, _, _)) {
+      implicit builder => (netherlands, slice, countryCodes) =>
+        import GraphDSL.Implicits._ // brings some nice operators in scope
+        val input = builder.add(source) // the initial elements
 
-      val slicesFlow: FlowShape[State, HashMap[Long, List[StateOfFly]]] = builder.add(slices())
-      val netherlandsFlow: FlowShape[State, Map[Icao24, Long]] =
-        builder.add(isAboveNetherlandsForPeriod(Map.empty[Icao24, Long], delayTime))
+        val slicesFlow: FlowShape[State, HashMap[Long, List[StateOfFly]]] = builder.add(slices)
+        val netherlandsFlow: FlowShape[State, Map[Icao24, Long]] =
+          builder.add(isAboveNetherlandsForPeriod(netherlandsForPeriod, delayTime))
+        val countriesFlow = builder.add(insertIntoTopCountries(icao24Vec))
 
-      val broadcast = builder.add(Broadcast[State](2)) // fan-out operator
+        val broadcast = builder.add(Broadcast[State](2)) // fan-out operator
 
-      input ~> broadcast
-      broadcast.out(0) ~> netherlandsFlow ~> netherlands.in
-      broadcast.out(1) ~> slicesFlow ~> slice.in
+        input ~> broadcast
+        broadcast.out(0) ~> netherlandsFlow ~> netherlands.in
+        broadcast.out(1) ~> slicesFlow ~> slice.in
+        broadcast.out(2) ~> countriesFlow ~> countryCodes.in
 
-      ClosedShape
+        ClosedShape
     }
 
-    RunnableGraph.fromGraph(graph).run()
+    val result = RunnableGraph.fromGraph(graph).run()
+
+    result._1.zip(result._2).zip(result._3).map { case ((a, b), c) =>
+      (a, b, c)
+    }
   }
 
   def isAboveNetherlandsForPeriod(
@@ -144,7 +175,7 @@ class FetchTimeAndStateFRP @Inject() (configuration: Configuration)(implicit
     }
   }
 
-  def slices(): Flow[State, HashMap[Long, List[StateOfFly]], NotUsed] = Flow[State]
+  val slices: Flow[State, HashMap[Long, List[StateOfFly]], NotUsed] = Flow[State]
     .map { state =>
       val baroAltitude = state.baroAltitude.getOrElse(0.0)
       val time = state.timePosition.getOrElse(state.lastContact)
@@ -174,5 +205,11 @@ class FetchTimeAndStateFRP @Inject() (configuration: Configuration)(implicit
     .fold(HashMap.empty[Long, List[StateOfFly]]) { case (map, el) =>
       map +
         (el.baroAltitudeSlice -> (map.get(el.baroAltitudeSlice).getOrElse(Nil)).prepended(el))
+    }
+
+  def insertIntoTopCountries(vec: Vector[CodeCountry]): Flow[State, CodeCountry, NotUsed] = Flow[State]
+    .filterNot(state => vec.exists(countryCode => countryCode.icao24 == state.icao24))
+    .map { state =>
+      CodeCountry(state.icao24, state.originCountry)
     }
 }

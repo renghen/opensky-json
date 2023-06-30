@@ -29,21 +29,22 @@ class OpenSkyFRPController @Inject() (
   val logger: Logger = Logger(this.getClass())
   implicit val timeout: Timeout = 5.seconds
 
-//   def top3Countries() = Action.async { implicit request: Request[AnyContent] =>
-//     import TopCountryJsonProtocol._
-//     val topCountriesFuture = (fetchTimeAndStateActor ? TopCountries).mapTo[Map[String, Int]]
+  def top3Countries() = Action.async { implicit request: Request[AnyContent] =>
+    import TopCountryJsonProtocol._
+    val topCountriesFuture = fetchTimeAndStateFRP.topCountries()
 
-//     topCountriesFuture.map { topCountries =>
-//       if (topCountries.size == 0) {
-//         Ok("[]")
-//       } else {
-//         val top3 = ListMap(topCountries.toSeq.sortWith(_._2 > _._2): _*).take(3).map(TopCountry.tupled)
-//         val top3Json = top3.toJson.toString()
-//         logger.info(s"Sending... Top 3 countries: $top3Json")
-//         Ok(top3Json)
-//       }
-//     }
-//   }
+    topCountriesFuture.map { topCountries =>
+      if (topCountries.size == 0) {
+        Ok("[]")
+      } else {
+        // val top3 = ListMap(topCountries.toSeq.sortWith(_._2 > _._2): _*).take(3).map(TopCountry.tupled)
+        val top3 = topCountries.toSeq.sortBy(_._2).take(3).map(TopCountry.tupled)
+        val top3Json = top3.toJson.toString()
+        logger.info(s"Sending... Top 3 countries: $top3Json")
+        Ok(top3Json)
+      }
+    }
+  }
 
   def overNetherlandsforlastHour() = Action.async { implicit request: Request[AnyContent] =>
     val overNetherlandsFuture = fetchTimeAndStateFRP.overNetherlands()
