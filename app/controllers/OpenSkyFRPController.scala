@@ -37,7 +37,7 @@ class OpenSkyFRPController @Inject() (
       if (topCountries.size == 0) {
         Ok("[]")
       } else {
-        val top3 = topCountries.toSeq.sortBy(_._2).take(3).map(TopCountry.tupled)
+        val top3 = topCountries.toSeq.sortBy(_._2)(Ordering.Int.reverse).take(3).map(TopCountry.tupled)
         val top3Json = top3.toJson.toString()
         logger.info(s"Sending... Top 3 countries: $top3Json")
         Ok(top3Json)
