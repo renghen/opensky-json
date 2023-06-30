@@ -41,8 +41,12 @@ class FetchTimeAndStateFRP @Inject() (configuration: Configuration)(implicit
 
   val logger: Logger = Logger(this.getClass())
   val url = configuration.getOptional[String]("opensky.url").getOrElse(FetchTimeAndStateFRP.url)
+
   val delayTime = configuration.getOptional[Int]("opensky.top.time").getOrElse(3600)
   logger.info(s"opensky time over Netherlands: $delayTime")
+
+  val interval = configuration.getMillis("opensky.interval")
+  logger.info(s"opensky scheduler interval $interval")
 
   private val netherlandsForPeriodFuture: Future[mutable.HashMap[Icao24, Long]] =
     Future.successful(mutable.HashMap.empty[Icao24, Long])
@@ -53,7 +57,7 @@ class FetchTimeAndStateFRP @Inject() (configuration: Configuration)(implicit
   private val listOfCodeCountryFuture: Future[mutable.ArrayBuffer[CodeCountry]] =
     Future.successful(mutable.ArrayBuffer.empty[CodeCountry])
 
-  Source.tick(0.second, 1.minute, "tick").runForeach { _ =>
+  Source.tick(0.second, interval.millis, "tick").runForeach { _ =>
     for {
       result <- getAirPlanes()
       netherlands = result._1

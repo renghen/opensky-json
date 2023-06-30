@@ -3,7 +3,7 @@
 # https://www.playframework.com/documentation/latest/ScalaRouting
 # ~~~~
 
-# GET     /top3Countries                controllers.OpenSkyController.top3Countries()
+GET     /top3Countries                controllers.OpenSkyFRPController.top3Countries()
 GET     /overNetherlandsforlastHour   controllers.OpenSkyFRPController.overNetherlandsforlastHour()
 GET     /slice/:id                    controllers.OpenSkyFRPController.slice(id: Int)
 
