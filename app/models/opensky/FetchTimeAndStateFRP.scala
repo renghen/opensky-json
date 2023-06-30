@@ -127,7 +127,7 @@ class FetchTimeAndStateFRP @Inject() (configuration: Configuration)(implicit
           builder.add(isAboveNetherlandsForPeriod(netherlandsForPeriod, delayTime))
         val countriesFlow = builder.add(insertIntoTopCountries(icao24Vec))
 
-        val broadcast = builder.add(Broadcast[State](2)) // fan-out operator
+        val broadcast = builder.add(Broadcast[State](3)) // fan-out operator
 
         input ~> broadcast
         broadcast.out(0) ~> netherlandsFlow ~> netherlands.in
