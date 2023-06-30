@@ -13,10 +13,11 @@ import akka.actor.ActorSystem
 import akka.stream.scaladsl.{Flow, Sink, Source}
 import spray.json._
 
-import scala.io
 import scala.collection.mutable
-import scala.util.Random
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
+import scala.io
+import scala.util.Random
 
 class StateProcessingAboveNetherlandsFileSpec extends PlaySpec {
   import StateJsonProtocol._
@@ -29,7 +30,7 @@ class StateProcessingAboveNetherlandsFileSpec extends PlaySpec {
     .fromIterator(() => statesInNetherlands.iterator)
 
   val rand = new Random()
-  val config = Configuration("opensky.top.time" -> 2)
+  val config = Configuration("opensky.top.time" -> 2, "opensky.interval" -> 60_000)
   val fetchTimeAndStateFRP = new FetchTimeAndStateFRP(config)
 
   implicit val system: ActorSystem = ActorSystem("SingleRequest")

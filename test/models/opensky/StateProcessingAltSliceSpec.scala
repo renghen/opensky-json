@@ -17,7 +17,6 @@ import scala.util.Random
 import java.time.Instant
 
 class StateProcessingAltSliceSpec extends PlaySpec {
-  val stateProcessing = new StateProcessing(2)
   val rand = new Random
   val config = Configuration("opensky.top.time" -> 2)
   val fetchTimeAndStateFRP = new FetchTimeAndStateFRP(config)
