@@ -7,7 +7,7 @@ import play.api.test.Helpers._
 import models.opensky._
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
-import controllers.OpenSkyController
+import controllers.OpenSkyFRPController
 
 /** Add your spec here. You can mock out a whole application including requests, plugins etc.
   *
